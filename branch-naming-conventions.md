@@ -15,6 +15,8 @@ Prefix enhancements to existing features with **improve/feature-impacted**.
 
 Prefix refactors to existing code with **refactor/what-was-refactored**.
 
+Prefix documentation changes to the codebase with **docs/relevant-doc**.
+
 1. Open an issue and refer to the CockroachDB-DeepDive project under 'Projects'. This is to keep project tracking consistent. You can find the project under [here](https://github.com/1ncipient?tab=projects)
 2. Fork the Project
 3. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
