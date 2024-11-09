@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Relationship Management</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+  <link rel="stylesheet" href="https://cdn.tailwindcss.com/2.2.19/tailwind.min.css">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Figtree:wght@700&display=swap');
+    @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400&display=swap");
+
+    /* Location of logo */
+    #svg-container {
+      position: fixed;
+      top: -10px;
+      right: 10px;
+      display: flex;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(5px);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 2rem;
+      z-index: -1;
+    }
+
+    .background-image {
+      background-image: url('./dashboards/assets/mhirj_bg2.png');
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+    }
+
+    .custom-font-size {
+      font-size: 5rem;
+    }
+
+    #myButton {
+      color: black;
+      background-color: #82A0AA;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: 4px solid #82A0AA;
+      font-size: 1.5rem;
+      font-family: Roboto;
+      font-weight: bold;
+    }
+
+    #myButton:hover {
+      background-color: #567783;
+      border-color: #567783;
+      cursor: pointer;
+    }
+
+    .fade-in-text {
+      opacity: 0;
+      animation: fadeIn 1s forwards;
+    }
+
+    .fade-in-text:nth-child(1) {
+      animation-delay: 0.5s;
+    }
+
+    .fade-in-text:nth-child(2) {
+      animation-delay: 1s;
+    }
+
+    .fade-in-text:nth-child(3) {
+      animation-delay: 1s;
+    }
+
+    @keyframes fadeIn {
+      0% {
+        opacity: 0;
+        color: #B3C3CA;
+      }
+      50% {
+        color: #7A939C;
+      }
+      100% {
+        opacity: 1;
+        color: black;
+      }
+    }
+
+    .content-left {
+      text-align: left;
+      padding-left: 5rem;
+      max-width: 50%; /* Adjust this to control the width of the text area */
+    }
+
+    .image-container {
+      flex: 1;
+      text-align: right;
+      padding-left: 2rem;
+    }
+
+    .image-container img {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="background-image" id="backgroundSection">
+    <div id="svg-container">
+      <object data="./dashboards/assets/logo_1.svg" height="200px" width="200px" type="image/svg+xml" aria-label="Company Logo"></object>
+    </div>
+    <div class="glass-card">
+      <div class="content-left">
+        <h1 class="fade-in-text custom-font-size font-bold" style="font-family: Figtree; color: black; margin-bottom:2rem">
+          Customer
+          <span class="fade-in-text" style="animation-delay: 1.5s">Relationship</span>
+          <span class="fade-in-text" style="animation-delay: 2s">Management</span>
+        </h1>
+        <h1 class="text-white mb-8" style="color: black; font-size: 1.3rem; font-family: Poppins; margin-bottom:5rem;">
+          This is a CRM tool to help businesses manage and analyze customer interactions and data throughout the customer lifecycle.
+        </h1>
+        <button id="myButton" onclick="window.location.href='/dashboards/'" class="font-rubik font-bold">Get Started</button>
+      </div>
+      <!-- <div class="image-container">
+        <img src="path/to/your/image.jpg" alt="CRM Image">
+      </div> -->
+    </div>
+  </div>
+</body>
+</html>

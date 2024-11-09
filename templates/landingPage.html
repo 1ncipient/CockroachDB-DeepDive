@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Aftermarket</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+  <link href="https://cdn.tailwindcss.com/2.2.19/tailwind.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap');
+    
+    .glass-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      width: 1300px; /* Adjust the width to your desired size */
+      height: 680px; /* Adjust the height to your desired size */
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    /*background-image: url('https://mhirj-preview-files.s3-us-west-2.amazonaws.com/mhirj/2021-04/Plane_1.jpg');*/
+    .background-image {
+      background-image: url('https://mhirj-preview-files.s3-us-west-2.amazonaws.com/mhirj/2021-04/Plane_1.jpg');
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: cover;
+      min-height: 97vh;
+      height: 713px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .custom-font-size {
+      font-size: 5rem; /* Adjust the font size to your desired value */
+    }
+    .container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .corner-image {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      position: absolute;
+      bottom: 0;
+      left: 10px;
+     
+      width: 300px; /* Adjust the size of the image as needed */
+      height: 200px; /* Adjust the size of the image as needed */
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="background-image" id="backgroundSection">
+    <div class="glass-card">
+          <div class="text-container">
+            <h1 class="text-white custom-font-size font-bold font-rubik mb-4" style="font-family: Roboto;">Aftermarket Sales Tool</h1>
+            <h1 class="text-white" style="font-size: 1.3rem; font-family: Roboto;">
+              This is a market sales tool for MHIRJ internal use. The tool provides 
+            </h1>
+            <h1 class="text-white" style="color: rgb(55, 30, 241);font-size: 1.3rem; font-family: Roboto;">                  
+                overall dashboards, analytics, RSPL, SOH and Triage Tool.
+            </h1>
+            <h1 class="text-white" style="font-size: 1.3rem; margin-bottom: 3rem;font-family: Roboto;">                  
+                Users will start with overall dashboards.
+            </h1>
+
+            <button onclick="window.location.href='/dashboards/'" class="font-rubik font-bold" style="font-weight: bold; color: black; background-color: #87CEEB; padding: 12px 24px; border-radius: 8px; border: 4px solid #87CEEB; font-size: 1.5rem; font-family: Roboto;">Get Started</button>
+            
+          </div>
+    </div>
+    <script>
+      const backgroundSection = document.getElementById('backgroundSection');
+      const images = ['https://mhirj-preview-files.s3-us-west-2.amazonaws.com/mhirj/2021-04/Plane_1.jpg', 
+                      'https://th.bing.com/th/id/OIP.FrxFaoNU7vVevzOKIWc2UwHaCg?pid=ImgDet&rs=1', 
+                      'https://www.flyht.com/_resources/product-slider/ps-weather.jpg']; // Array of image URLs
+      let currentIndex = 0;
+  
+      function changeBackgroundImage() {
+        const imageUrl = images[currentIndex];
+        backgroundSection.style.backgroundImage = `url('${imageUrl}')`;
+  
+        currentIndex = (currentIndex + 1) % images.length;
+      }
+  
+      // Change background image every 5 seconds (adjust the timing as needed)
+      setInterval(changeBackgroundImage, 5000);
+    </script>
+  </div>
+  
+</body>
+</html>
