@@ -1,0 +1,19 @@
+name: Check branch name
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-branch-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify branch name
+        run: |
+          if [[ "${{ github.head_ref }}" =~ ^(docs|refactor|feature|bugfix|improve)/ ]]; then
+            echo "Branch name is valid"
+          else
+            echo "Invalid branch name. Only branches prefixed with 'docs/', 'refactor/', 'feature/', 'bugfix/', or 'improve/' can be merged into main."
+            exit 1
+          fi
