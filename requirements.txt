@@ -19,3 +19,7 @@ pyarrow
 xlrd
 xlsx2csv
 pandas
+SQLAlchemy
+sqlalchemy-cockroachdb
+psycopg2
+python-dotenv

@@ -39,10 +39,7 @@ first_row = html.Div(
                     className="flex justify-around",
                     children=[
                         html.H4("Frequently visited pages: "),
-                        dcc.Link(dmc.Chip("Book To Bill", value="booktobill_chip"), href="/dashboards/dashboard-booktobill"),
-                        dcc.Link(dmc.Chip("Analytics", value="analytics_chip"), href="/dashboards/dashboard-analytics"),
-                        dcc.Link(dmc.Chip("Triage", value="Triage_chip"), href="/dashboards/triage"),
-                        dcc.Link(dmc.Chip("Transition", value="Transition_chip"), href="/dashboards/transition"),
+                        dcc.Link(dmc.Chip("Search", value="booktobill_chip"), href="/dashboards/search"),
                     ],
                 ),
             ],
