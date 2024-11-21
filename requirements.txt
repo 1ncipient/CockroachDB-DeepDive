@@ -1,0 +1,6 @@
+sqlalchemy
+sqlalchemy-cockroachdb
+Flask
+docopt
+psycopg2
+passlib
