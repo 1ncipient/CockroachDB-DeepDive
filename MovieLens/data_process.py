@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import gc
 import argparse
 import pandas as pd
 
@@ -11,16 +10,19 @@ def unify_movieId(data_path):
 
     # movies_metadata.columns = [x.replace("\r", "") for x in movies_metadata.columns.to_list()]
 
+    # Drop all duplicate and null values
     movies_metadata.drop_duplicates(subset='id', keep='first', inplace=True)
     movies_metadata.drop_duplicates(subset='imdb_id', keep='first', inplace=True)
     credits.drop_duplicates(subset='id', keep='first', inplace=True)
     links.drop_duplicates(subset='tmdbId', keep='first', inplace=True)
     movies_metadata['imdbId'] = movies_metadata['imdb_id'].str.lstrip('tt').astype('float')
 
+    # Unify movie id across tables
     tmdb_to_movieId_map = dict(zip(links['tmdbId'], links['movieId']))
     movies_metadata['movieId'] = movies_metadata['id'].map(tmdb_to_movieId_map)
     credits['movieId'] = credits['id'].map(tmdb_to_movieId_map)
 
+    # intersect movie id across tables to keep the common movies
     valid_movieIds = set(links['movieId'].dropna()) & \
                     set(credits['movieId'].dropna()) & \
                     set(movies_metadata['movieId'].dropna())
@@ -32,6 +34,17 @@ def unify_movieId(data_path):
     movies = pd.read_csv(data_path + 'movies.csv')
     ratings = pd.read_csv(data_path + 'ratings.csv')
     tags = pd.read_csv(data_path + 'tags.csv')
+
+    movies['genres'] = movies['genres'].fillna('').str.replace('|', ',', regex=False).apply(lambda x: f'{{{x}}}' if x else '{}')
+
+    tags.drop(columns=['userId', 'timestamp'], inplace=True, errors='ignore')
+    tags['tag'] = tags['tag'].fillna('').astype(str)
+    tags = tags.groupby('movieId')['tag'].apply(lambda tags: '{' + ','.join(sorted(set(tag.replace(',', '\\,') for tag in tags if tag.strip()))) + '}').reset_index().sort_values(by='movieId')
+    tags.rename(columns={'tag': 'tags'}, inplace=True)
+
+    ratings.drop(columns=['userId', 'timestamp'], inplace=True, errors='ignore')
+    ratings = ratings.groupby('movieId')['rating'].mean().reset_index()
+    ratings = ratings.sort_values(by='movieId')
 
     movies = movies[movies['movieId'].isin(valid_movieIds)]
     ratings = ratings[ratings['movieId'].isin(valid_movieIds)]
@@ -54,7 +67,7 @@ def main():
     data_path = args.path
 
     unify_movieId(data_path)
-    
+
     movies_metadata = pd.read_csv(data_path + 'movies_metadata.csv', lineterminator='\n')
     credits = pd.read_csv(data_path + 'credits.csv', lineterminator='\n')
     
