@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 
+import json
+import ast
 import argparse
 import pandas as pd
 
-def unify_movieId(data_path):
-    movies_metadata = pd.read_csv(data_path + 'movies_metadata.csv')
-    credits = pd.read_csv(data_path + 'credits.csv')
-    links = pd.read_csv(data_path + 'links.csv')
-
-    # movies_metadata.columns = [x.replace("\r", "") for x in movies_metadata.columns.to_list()]
-
+def unify_movieId(movies_metadata, credits, links, genome_scores, movies, ratings):
     # Drop all duplicate and null values
     movies_metadata.drop_duplicates(subset='id', keep='first', inplace=True)
     movies_metadata.drop_duplicates(subset='imdb_id', keep='first', inplace=True)
@@ -30,63 +26,73 @@ def unify_movieId(data_path):
     links = links[links['movieId'].isin(valid_movieIds)]
     credits = credits[credits['movieId'].isin(valid_movieIds)]
     movies_metadata = movies_metadata[movies_metadata['movieId'].isin(valid_movieIds)]
-
-    movies = pd.read_csv(data_path + 'movies.csv')
-    ratings = pd.read_csv(data_path + 'ratings.csv')
-    tags = pd.read_csv(data_path + 'tags.csv')
-
-    movies['genres'] = movies['genres'].fillna('').str.replace('|', ',', regex=False).apply(lambda x: f'{{{x}}}' if x else '{}')
-
-    tags.drop(columns=['userId', 'timestamp'], inplace=True, errors='ignore')
-    tags['tag'] = tags['tag'].fillna('').astype(str)
-    tags = tags.groupby('movieId')['tag'].apply(lambda tags: '{' + ','.join(sorted(set(tag.replace(',', '\\,') for tag in tags if tag.strip()))) + '}').reset_index().sort_values(by='movieId')
-    tags.rename(columns={'tag': 'tags'}, inplace=True)
-
-    ratings.drop(columns=['userId', 'timestamp'], inplace=True, errors='ignore')
-    ratings = ratings.groupby('movieId')['rating'].mean().reset_index()
-    ratings = ratings.sort_values(by='movieId')
-
+    genome_scores = genome_scores[genome_scores['movieId'].isin(valid_movieIds)]
     movies = movies[movies['movieId'].isin(valid_movieIds)]
+    # tags = tags[tags['movieId'].isin(valid_movieIds)]
     ratings = ratings[ratings['movieId'].isin(valid_movieIds)]
-    tags = tags[tags['movieId'].isin(valid_movieIds)]
 
-    movies_metadata.to_csv(data_path + 'movies_metadata.csv', index=False)
-    credits.to_csv(data_path + 'credits.csv', index=False)
-    links.to_csv(data_path + 'links.csv', index=False)
-    movies.to_csv(data_path + 'movies.csv', index=False)
-    ratings.to_csv(data_path + 'ratings.csv', index=False)
-    tags.to_csv(data_path + 'tags.csv', index=False)
+    # movies_metadata.to_csv(data_path + 'movies_metadata.csv', index=False)
+    # credits.to_csv(data_path + 'credits.csv', index=False)
+    # links.to_csv(data_path + 'links.csv', index=False)
+    # movies.to_csv(data_path + 'movies.csv', index=False)
+    # ratings.to_csv(data_path + 'ratings.csv', index=False)
+    # tags.to_csv(data_path + 'tags.csv', index=False)
+    # genome_scores.to_csv(data_path + 'genome-scores.csv', index=False)
 
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Process a path argument.")
     parser.add_argument("path", help="The path to process")
     args = parser.parse_args()
-
     # Get the path from the arguments
     data_path = args.path
 
-    unify_movieId(data_path)
+    movies_metadata = pd.read_csv(open(data_path + 'movies_metadata.csv','r', newline=None))
+    credits = pd.read_csv(open(data_path + 'credits.csv','r', newline=None))
+    links = pd.read_csv(open(data_path + 'links.csv','r', newline=None))
+    genome_scores = pd.read_csv(open(data_path + 'genome-scores.csv','r', newline=None))
+    movies = pd.read_csv(open(data_path + 'movies.csv','r', newline=None))
+    ratings = pd.read_csv(open(data_path + 'ratings.csv','r', newline=None))
+    # tags = pd.read_csv(open(data_path + 'tags.csv','r', newline=None))
 
-    movies_metadata = pd.read_csv(data_path + 'movies_metadata.csv', lineterminator='\n')
-    credits = pd.read_csv(data_path + 'credits.csv', lineterminator='\n')
-    
+    unify_movieId(movies_metadata, credits, links, genome_scores, movies, ratings)
+
     # Remove unnecessary columns in movie metadata
     movies_metadata.drop(columns=['belongs_to_collection', 'genres', 'homepage', 'status', 'original_title', 'video', 'imdb_id', 'id', 'imdbId'], inplace=True, errors='ignore')
 
     # Format the json data
-    movies_metadata['production_companies'] = movies_metadata['production_companies'].str.replace("'", '"').str.replace("None", 'null').str.replace("True", 'true').str.replace("False", 'false')
-    movies_metadata['production_countries'] = movies_metadata['production_countries'].str.replace("'", '"').str.replace("None", 'null').str.replace("True", 'true').str.replace("False", 'false')
-    movies_metadata['spoken_languages'] = movies_metadata['spoken_languages'].str.replace("'", '"').str.replace("None", 'null').str.replace("True", 'true').str.replace("False", 'false')
+    movies_metadata['production_companies'] = movies_metadata['production_companies'].apply(ast.literal_eval).apply(lambda x: json.dumps(x))
+    movies_metadata['production_countries'] = movies_metadata['production_countries'].apply(ast.literal_eval).apply(lambda x: json.dumps(x))
+    movies_metadata['spoken_languages'] = movies_metadata['spoken_languages'].apply(ast.literal_eval).apply(lambda x: json.dumps(x))
 
     movies_metadata.drop(columns='id', inplace=True, errors='ignore')
 
     # Format the json data
-    credits['cast'] = credits['cast'].str.replace("'", '"').str.replace("None", 'null').str.replace("True", 'true').str.replace("False", 'false')
-    credits['crew'] = credits['crew'].str.replace("'", '"').str.replace("None", 'null').str.replace("True", 'true').str.replace("False", 'false')
+    credits['cast'] = credits['cast'].apply(ast.literal_eval).apply(lambda x: json.dumps(x))
+    credits['crew'] = credits['crew'].apply(ast.literal_eval).apply(lambda x: json.dumps(x))
+
+    credits.drop(columns='id', inplace=True, errors='ignore')
+
+    movies['genres'] = movies['genres'].fillna('').str.replace('|', ',', regex=False).apply(lambda x: f'{{{x}}}' if x else '{}')
+
+    # tags.drop(columns=['userId', 'timestamp'], inplace=True, errors='ignore')
+    # tags['tag'] = tags['tag'].fillna('').astype(str)
+    # tags = tags.groupby('movieId')['tag'].apply(lambda tags: '{' + ','.join(sorted(set(tag.replace(',', '\\,') for tag in tags if tag.strip()))) + '}').reset_index().sort_values(by='movieId')
+    # tags.rename(columns={'tag': 'tags'}, inplace=True)
+
+    genome_scores = genome_scores.groupby("movieId").apply(lambda x: json.dumps(dict(zip(x["tagId"], x["relevance"])))).reset_index(name="relevances")
+
+    ratings.drop(columns=['userId', 'timestamp'], inplace=True, errors='ignore')
+    ratings = ratings.groupby('movieId')['rating'].mean().reset_index()
+    ratings = ratings.sort_values(by='movieId')
 
     movies_metadata.to_csv(data_path + 'movies_metadata.csv', index=False)
     credits.to_csv(data_path + 'credits.csv', index=False)
+    links.to_csv(data_path + 'links.csv', index=False)
+    movies.to_csv(data_path + 'movies.csv', index=False)
+    ratings.to_csv(data_path + 'ratings.csv', index=False)
+    # tags.to_csv(data_path + 'tags.csv', index=False)
+    genome_scores.to_csv(data_path + 'genome-scores.csv', index=False)
 
     
 if __name__ == '__main__':
