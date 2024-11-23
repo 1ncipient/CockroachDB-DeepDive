@@ -28,22 +28,14 @@ def unify_movieId(movies_metadata, credits, links, genome_scores, movies, rating
     movies_metadata = movies_metadata[movies_metadata['movieId'].isin(valid_movieIds)]
     genome_scores = genome_scores[genome_scores['movieId'].isin(valid_movieIds)]
     movies = movies[movies['movieId'].isin(valid_movieIds)]
-    # tags = tags[tags['movieId'].isin(valid_movieIds)]
     ratings = ratings[ratings['movieId'].isin(valid_movieIds)]
-
-    # movies_metadata.to_csv(data_path + 'movies_metadata.csv', index=False)
-    # credits.to_csv(data_path + 'credits.csv', index=False)
-    # links.to_csv(data_path + 'links.csv', index=False)
-    # movies.to_csv(data_path + 'movies.csv', index=False)
-    # ratings.to_csv(data_path + 'ratings.csv', index=False)
-    # tags.to_csv(data_path + 'tags.csv', index=False)
-    # genome_scores.to_csv(data_path + 'genome-scores.csv', index=False)
 
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Process a path argument.")
     parser.add_argument("path", help="The path to process")
     args = parser.parse_args()
+    
     # Get the path from the arguments
     data_path = args.path
 
@@ -53,7 +45,6 @@ def main():
     genome_scores = pd.read_csv(open(data_path + 'genome-scores.csv','r', newline=None))
     movies = pd.read_csv(open(data_path + 'movies.csv','r', newline=None))
     ratings = pd.read_csv(open(data_path + 'ratings.csv','r', newline=None))
-    # tags = pd.read_csv(open(data_path + 'tags.csv','r', newline=None))
 
     unify_movieId(movies_metadata, credits, links, genome_scores, movies, ratings)
 
@@ -65,8 +56,6 @@ def main():
     movies_metadata['production_countries'] = movies_metadata['production_countries'].apply(ast.literal_eval).apply(lambda x: json.dumps(x))
     movies_metadata['spoken_languages'] = movies_metadata['spoken_languages'].apply(ast.literal_eval).apply(lambda x: json.dumps(x))
 
-    movies_metadata.drop(columns='id', inplace=True, errors='ignore')
-
     # Format the json data
     credits['cast'] = credits['cast'].apply(ast.literal_eval).apply(lambda x: json.dumps(x))
     credits['crew'] = credits['crew'].apply(ast.literal_eval).apply(lambda x: json.dumps(x))
@@ -74,11 +63,6 @@ def main():
     credits.drop(columns='id', inplace=True, errors='ignore')
 
     movies['genres'] = movies['genres'].fillna('').str.replace('|', ',', regex=False).apply(lambda x: f'{{{x}}}' if x else '{}')
-
-    # tags.drop(columns=['userId', 'timestamp'], inplace=True, errors='ignore')
-    # tags['tag'] = tags['tag'].fillna('').astype(str)
-    # tags = tags.groupby('movieId')['tag'].apply(lambda tags: '{' + ','.join(sorted(set(tag.replace(',', '\\,') for tag in tags if tag.strip()))) + '}').reset_index().sort_values(by='movieId')
-    # tags.rename(columns={'tag': 'tags'}, inplace=True)
 
     genome_scores = genome_scores.groupby("movieId").apply(lambda x: json.dumps(dict(zip(x["tagId"], x["relevance"])))).reset_index(name="relevances")
 
@@ -91,7 +75,6 @@ def main():
     links.to_csv(data_path + 'links.csv', index=False)
     movies.to_csv(data_path + 'movies.csv', index=False)
     ratings.to_csv(data_path + 'ratings.csv', index=False)
-    # tags.to_csv(data_path + 'tags.csv', index=False)
     genome_scores.to_csv(data_path + 'genome-scores.csv', index=False)
 
     

@@ -31,7 +31,7 @@ if  [[ $1 = "-r" ]]; then
     unzip "$DIR/MovieLens/movie_metadata.zip" -d "$DIR/MovieLens/"
     unzip -j "$DIR/MovieLens/ml-latest.zip" -d "$DIR/MovieLens/"
 
-    rm "$DIR/MovieLens/ml-latest.zip" "$DIR/MovieLens/movie_metadata.zip" "$DIR/MovieLens/keywords.csv"
+    rm "$DIR/MovieLens/ml-latest.zip" "$DIR/MovieLens/movie_metadata.zip" "$DIR/MovieLens/keywords.csv" "$DIR/MovieLens/tags.csv"
 
     echo -e "\n${GREEN_COLOR}Movie data download complete${NO_COLOR}\n"
 fi
