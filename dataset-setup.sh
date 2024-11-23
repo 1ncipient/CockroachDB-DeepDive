@@ -1,6 +1,8 @@
 #!/bin/bash
 
-DIR="$( cd "$( dirname "$0" )" && pwd )"
+SCRIPT_PATH=$(readlink -f "$0")
+DIR=$(dirname "$SCRIPT_PATH")
+
 GREEN_COLOR='\033[1;32m'
 RED_COLOR='\033[0;31m'
 NO_COLOR='\033[0m'
