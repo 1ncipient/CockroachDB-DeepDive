@@ -5,6 +5,8 @@ import pandas as pd
 import argparse
 
 from sqlalchemy import create_engine, inspect, text
+from psycopg2.errors import SerializationFailure, Error
+from psycopg2 import Error
 from model.movie_models import *
 
 MAX_RETRIES = 5
@@ -37,18 +39,20 @@ def uploadTablesData(file_path, table_name, engine, chunk_size):
         # Safe truncation with retry logic
         for attempt in range(MAX_RETRIES):
             try:
-
                 # Upload data to the table
                 df = pd.read_csv(open(file_path,'r', newline=None))
                 df.to_sql(table_name, con=engine, index=False, if_exists='append', chunksize=chunk_size, method='multi')
                 print(f"Data inserted into [{table_name}] successfully.\n")
                 break
-            except Exception as e:
-                if ("TransactionAbortedError" in str(e) or "TransactionRetryError" in str(e)) and attempt < MAX_RETRIES - 1:
+            except SerializationFailure as e: # This is a TransactionRetryError
+                if attempt < MAX_RETRIES - 1:
                     print(f"Retrying transaction for table [{table_name}] (attempt {attempt + 1})...")
                     continue
                 else:
-                    print(f"Failed to upload data to table [{table_name}]: {e}\n")
+                    raise Error("Transaction maximum retry reached!\n")
+            except Error as e:
+                print(f"Failed to upload data to table [{table_name}]: {e}\n")
+                raise e
 
 def main():
     # Set up argument parser
