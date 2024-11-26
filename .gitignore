@@ -146,3 +146,6 @@ dmypy.json
 
 # Ignore CockroachDB AMD64
 *linux-amd64
+
+MovieLens/*
+!MovieLens/data_process.py
