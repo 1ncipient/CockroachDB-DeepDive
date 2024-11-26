@@ -51,7 +51,7 @@ def sales_tool(server):
         server=server,
         assets_folder=os.path.abspath(r"dashboards/assets"),
         title="CS4411 Movie Recs",
-        routes_pathname_prefix="/dashboards/",
+        routes_pathname_prefix="/movies/",
         external_stylesheets=dmc.styles.ALL
     )
 
@@ -64,7 +64,7 @@ def sales_tool(server):
 
     dash_app.layout = dmc.MantineProvider(
             children=[
-                html.P('Test Logo'),
+                dcc.Link(dmc.Text('CS4411 Movie Database', style={'margin' : '25px'}), href='/movies/search/'),
                 dash.page_container,
             ],
         )
