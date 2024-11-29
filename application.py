@@ -2,8 +2,8 @@ import os
 import dash
 from flask import Flask, redirect, send_from_directory
 
-from dashboards.dash_main.dash_pages import dashMain as dash_blueprint
-from dashboards.dash_main.dash_pages import sales_tool
+from movieRatingSystem.dash_main.dash_pages import dashMain as dash_blueprint
+from movieRatingSystem.dash_main.dash_pages import sales_tool
 from main import main as main_blueprint
 
 

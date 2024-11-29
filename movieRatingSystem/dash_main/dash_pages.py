@@ -17,23 +17,6 @@ toolIcons = {'Home' : "antd-home", 'Zendesk' : "antd-comment", 'Idmr' : 'md-buil
             }
 
 
-def get_svg_logo(imageName):
-    """
-    Read the name of the SVG file and loads it as an image.
-
-    Args:
-        imageName: Name of the SVG file
-    Returns:
-        File as an image option
-    """
-    with open(os.path.abspath(r"dashboards/assets/" + imageName), "rb") as f:
-        encoded_logo = base64.b64encode(f.read()).decode("utf-8")
-    return f"data:image/svg+xml;base64,{encoded_logo}"
-
-def get_icon(icon):
-    return DashIconify(icon=icon, height=16)
-
-
 def sales_tool(server):
     """
     Load config and layout of dashboard page.
@@ -49,7 +32,7 @@ def sales_tool(server):
         pages_folder="pages",
         use_pages=True,
         server=server,
-        assets_folder=os.path.abspath(r"dashboards/assets"),
+        assets_folder=os.path.abspath(r"movieRatingSystem/assets"),
         title="CS4411 Movie Recs",
         routes_pathname_prefix="/movies/",
         external_stylesheets=dmc.styles.ALL
