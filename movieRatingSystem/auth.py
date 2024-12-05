@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 import os
-from util.connect_with_sqlalchemy import (build_sqla_connection_string,
+from utils.connect_with_sqlalchemy import (build_sqla_connection_string,
                                           test_connection)
 from AuthManager import AuthManager
 from sqlalchemy.exc import IntegrityError

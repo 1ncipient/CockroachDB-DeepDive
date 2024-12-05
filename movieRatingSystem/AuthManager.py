@@ -14,7 +14,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 from sqlalchemy_cockroachdb import run_transaction
-from model.models import User
+from movieRatingSystem.models.auth_models import User
 import os
 from typing import List
 import transactions
