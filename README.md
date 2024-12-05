@@ -56,17 +56,19 @@ You can configure the database connection pool in `.env`:
 ## Running the Application
 
 ```bash
-python application.py
+export FLASK_APP=application.py
+export FLASK_DEBUG=1
+export FLASK_ENV=local
+python3 -m flask run -h localhost -p 8048
 ```
 
 The application will be available at `http://localhost:5000`
 
 ## Features
 
-- Multi-database support (CockroachDB, PostgreSQL, MariaDB)
+- Multi-database support (CockroachDB, PostgreSQL, MariaDB) (WIP)
 - Configurable connection pooling
 - Environment-based configuration
 - Colored logging
-- Client-side sorting
 - Server-side pagination
 - Advanced search filters
