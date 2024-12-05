@@ -7,7 +7,7 @@ import argparse
 from sqlalchemy import create_engine, inspect, text
 from psycopg2.errors import SerializationFailure, Error
 from psycopg2 import Error
-from model.movie_models import *
+from models.movie_models import *
 
 MAX_RETRIES = 5
 
