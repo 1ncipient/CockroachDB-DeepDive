@@ -11,7 +11,7 @@ dash-core-components
 dash-extensions
 dash-html-components
 dash-iconify
-dash-mantine-components==0.14.7
+dash-mantine-components
 dash_bootstrap_components
 dash_daq
 fastexcel
@@ -26,3 +26,5 @@ xlsx2csv
 pandas
 SQLAlchemy
 python-dotenv
+colorlog==6.8.0
+pycountry==22.3.5
