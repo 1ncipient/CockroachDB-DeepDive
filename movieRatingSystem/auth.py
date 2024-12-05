@@ -22,8 +22,6 @@ auth_manager = AuthManager(CONNECTION_STRING)
 
 print("Testing connection to the database...")
 
-
-
 # Routes
 @app.route("/")
 def home():
@@ -39,12 +37,15 @@ def register():
         try:
             auth_manager.add_user(username, email, password)
             flash("User registered successfully!", "success")
-            return redirect(url_for("login"))
         except IntegrityError:
             flash("Username or email already exists.", "danger")
         except ValueError as e:
             flash(str(e), "danger")
 
+        # Regardless of success or failure, redirect back to home
+        return redirect(url_for("home"))
+
+    # Render the register page on GET request
     return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
@@ -56,10 +57,13 @@ def login():
         try:
             user = auth_manager.login_user(username, password)
             flash(f"Welcome, {user.username}!", "success")
-            return redirect(url_for("home"))
         except ValueError as e:
             flash(str(e), "danger")
 
+        # Regardless of success or failure, redirect back to home
+        return redirect(url_for("home"))
+
+    # Render the login page on GET request
     return render_template("login.html")
 
 if __name__ == "__main__":

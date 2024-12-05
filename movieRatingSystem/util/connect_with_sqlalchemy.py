@@ -231,10 +231,11 @@ def get_database(url):
     parsed_url = urlparse(url)
     database = parsed_url.path[1:]  # '/dbname' -> 'dbname'
     if database == 'defaultdb':
-        input_db = input("WARNING: Your database is listed as defaultdb. "
+        input_db = input("WARNING: Your database is listed as moviedb. "
                          "Please input another (such as `movies` if this was a "
-                         "mistake. (hit enter to keep it as `defaultdb`).\n")
+                         "mistake. (hit enter to keep it as `moviedb`).\n")
         if input_db == '':
+            database = 'moviedb'
             return database
         return input_db
 
