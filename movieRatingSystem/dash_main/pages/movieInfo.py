@@ -81,10 +81,10 @@ def showMovieInfo(nclicks, movieID):
                                         dmc.Text(round(specificMovieInfo['vote_average'], 2), size='xl', c='white', style={'background-color' : 'green' if round(specificMovieInfo['vote_average'], 2) > 7 else 'orange', 'padding' : '5px'}),
                                         dmc.Flex(
                                             children=[
-                                                dmc.Text(f'Ratings: {round(specificMovieInfo['vote_average'], 2)} from {int(specificMovieInfo['vote_count'])} TMDB users'),
+                                                dmc.Text(f"Ratings: {round(specificMovieInfo['vote_average'], 2)} from {int(specificMovieInfo['vote_count'])} TMDB users"),
                                                 dmc.Group(
                                                     children=[
-                                                        dmc.Text(f'User Ratings : '),
+                                                        dmc.Text(f"User Ratings : "),
                                                         dmc.Rating(fractions=2, value=round(specificMovieInfo['rating'], 2), readOnly=True)
                                                     ]
                                                 )
@@ -131,7 +131,7 @@ def showMovieInfo(nclicks, movieID):
                                                 dmc.Flex(
                                                     children=[
                                                         dmc.Image(src=f"https://image.tmdb.org/t/p/original{actor['profile_path']}" if actor['profile_path'] else "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe957375e70239d6abdd549fd7568c89281b2179b5f4470e2e12895792dfa5.svg", h=150, w=100),
-                                                        dcc.Link(dmc.Text(actor['actor_name'], w=100), href=f'/movies/actor?actorID={actor['actor_id']}'),
+                                                        dcc.Link(dmc.Text(actor['actor_name'], w=100), href=f"/movies/actor?actorID={actor['actor_id']}"),
                                                         dmc.Text(actor['character'], w=100, size='sm'),
                                                     ],
                                                     direction='column',
@@ -187,7 +187,7 @@ def showMovieRec(genomes, movieID):
                                 dmc.Flex(
                                     children=[
                                         dmc.Image(src=f"https://image.tmdb.org/t/p/original{movie['poster_path']}" if movie['poster_path'] else "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe957375e70239d6abdd549fd7568c89281b2179b5f4470e2e12895792dfa5.svg", h=150, w=100),
-                                        dcc.Link(dmc.Text(movie['title'], w=100), href=f'/movies/info?movieID={movie['movieId']}'),
+                                        dcc.Link(dmc.Text(movie['title'], w=100), href=f"/movies/info?movieID={movie['movieId']}"),
                                     ],
                                     direction='column',
                                     h=200,
@@ -202,4 +202,3 @@ def showMovieRec(genomes, movieID):
 
 
     return movieRecsHTML
-
