@@ -1,3 +1,9 @@
+sqlalchemy
+sqlalchemy-cockroachdb
+Flask
+docopt
+psycopg2
+passlib
 babel
 dash
 dash_ag_grid
@@ -8,7 +14,6 @@ dash-iconify
 dash-mantine-components==0.14.7
 dash_bootstrap_components
 dash_daq
-Flask
 fastexcel
 numpy==1.26.4
 openpyxl
@@ -20,6 +25,4 @@ xlrd
 xlsx2csv
 pandas
 SQLAlchemy
-sqlalchemy-cockroachdb
-psycopg2
 python-dotenv
