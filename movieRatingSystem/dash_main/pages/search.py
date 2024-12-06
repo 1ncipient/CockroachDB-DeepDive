@@ -183,7 +183,7 @@ def create_movie_card(movie):
                                                 width=16
                                             )
                                         ),
-                                        href=f"/movie/{movie['movieId']}"
+                                        href=f"/info?movieID={movie['movieId']}"
                                     )
                                 ]
                             )
