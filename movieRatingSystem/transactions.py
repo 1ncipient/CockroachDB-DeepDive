@@ -16,7 +16,7 @@ ACID properties of transactions:
 - Durability: Changes made by a transaction are permanent and are not lost.
 """
 
-from model.models import User
+from movieRatingSystem.model.models import User
 from uuid import uuid4
 from sqlalchemy.sql.expression import func
 

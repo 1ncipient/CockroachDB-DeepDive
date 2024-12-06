@@ -14,12 +14,12 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 from sqlalchemy_cockroachdb import run_transaction
-from model.models import User
+from movieRatingSystem.model.models import User
 import os
 from typing import List
-import transactions
+import movieRatingSystem.transactions as transactions
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+AUTH_URL = os.getenv("AUTH_URL")
 
 # Username and Password Character Limits
 USERNAME_MIN_LENGTH = 3

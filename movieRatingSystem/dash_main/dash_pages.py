@@ -4,54 +4,77 @@ import datetime
 import os
 
 import dash
+from dash import html, dcc
 import dash_mantine_components as dmc
-from dash import ALL, Dash, Input, Output, html, dcc, State, ctx
 from dash_iconify import DashIconify
-from flask import Blueprint
-from dash_extensions.enrich import DashProxy
+from flask import Blueprint, session
+from dash_extensions.enrich import DashProxy, NoOutputTransform
 
 dashMain = Blueprint("dashMain", __name__)
-
-toolIcons = {'Home' : "antd-home", 'Zendesk' : "antd-comment", 'Idmr' : 'md-build',
-            'Tech-pubs' : 'antd-read'
-            }
-
 
 def sales_tool(server):
     """
     Load config and layout of dashboard page.
-
-    Args:
-        server: The configuration for the server
-    Returns:
-        The navbar, page content and footer
     """
+    # Set up Dash
     dash._dash_renderer._set_react_version('18.2.0')
+    
+    # Initialize the Dash app with minimal config first
     dash_app = DashProxy(
         name=__name__,
-        pages_folder="pages",
-        use_pages=True,
         server=server,
+        use_pages=True,
+        pages_folder=os.path.abspath(r"movieRatingSystem/dash_main/pages"),  # Make sure this path is correct
         assets_folder=os.path.abspath(r"movieRatingSystem/assets"),
         title="CS4411 Movie Recs",
         routes_pathname_prefix="/movies/",
-        external_stylesheets=dmc.styles.ALL
+        transforms=[NoOutputTransform()],
+        suppress_callback_exceptions=True,
+        assets_ignore='.*\.py',  # Ignore Python files in assets folder
     )
 
-    # Filter out the home page and adjust it
-    filtered_dict = {}
-
-    # Create filter dict and create the home page with custom url to the home page
-    for page, innerDict in dash.page_registry.items():
-        filtered_dict[page] = innerDict
-
-    dash_app.layout = dmc.MantineProvider(
+    # Basic layout with error boundary
+    dash_app.layout = html.Div([
+        dcc.Location(id='url', refresh=False),
+        html.Div(
+            id='error-boundary',
             children=[
-                dcc.Link(dmc.Text('CS4411 Movie Database', style={'margin' : '25px'}), href='/movies/search/'),
-                dash.page_container,
-            ],
+                dmc.Header(
+                    height=60,
+                    children=[
+                        dmc.Container(
+                            fluid=True,
+                            children=[
+                                dmc.Group(
+                                    position="apart",
+                                    children=[
+                                        dmc.Text("CS4411 Movie Database", size="xl"),
+                                        dmc.Group(
+                                            children=[
+                                                dcc.Link(
+                                                    dmc.Button("Search", variant="light"),
+                                                    href="/movies/search"
+                                                ),
+                                            ]
+                                        )
+                                    ]
+                                )
+                            ]
+                        )
+                    ]
+                ),
+                dmc.Container(
+                    fluid=True,
+                    style={"marginTop": 20},
+                    children=[
+                        dash.page_container
+                    ]
+                )
+            ]
         )
+    ])
 
-
+    # Print registered pages for debugging
+    print("Registered Dash pages:", dash.page_registry.keys())
+    
     return dash_app.server
-
