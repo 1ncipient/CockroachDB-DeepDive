@@ -12,17 +12,9 @@ from dotenv import load_dotenv
 from sqlalchemy import select
 
 load_dotenv()
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = os.getenv('COCKROACH_DATABASE_URL')
 # session = Session()
 dash.register_page(__name__, path='/info')
-
-
-# test = select(MovieMetadata)
-
-# for user in session.scalars(test):
-#     print(user)
-
-#specificActor = pd.read_sql("SELECT a.\"movieId\", a.profile_path, a.actor_id, a.actor_name, a.character, m.poster_path FROM actors a JOIN movie_metadata m ON a.\"movieId\" = m.\"movieId\" WHERE actor_id = 31;", DATABASE_URL)
 
 def layout(movieID=None, **other_unknown_query_strings):
     return html.Div(
@@ -31,7 +23,7 @@ def layout(movieID=None, **other_unknown_query_strings):
                                 overlayProps={"radius": "sm", "blur": 2},
                                 zIndex=10,
                                 visible=True,
-                                ),
+            ),
             html.Button(children='hello', id='test-button', style={'display' : 'None'}),
             html.Span(id='movieID', style={'display' : 'None'}, children=movieID),
             dcc.Store(id='movie-recommend-data'),
@@ -131,7 +123,7 @@ def showMovieInfo(nclicks, movieID):
                                                 dmc.Flex(
                                                     children=[
                                                         dmc.Image(src=f"https://image.tmdb.org/t/p/original{actor['profile_path']}" if actor['profile_path'] else "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe957375e70239d6abdd549fd7568c89281b2179b5f4470e2e12895792dfa5.svg", h=150, w=100),
-                                                        dcc.Link(dmc.Text(actor['actor_name'], w=100), href=f"/movies/actor?actorID={actor['actor_id']}"),
+                                                        dcc.Link(dmc.Text(actor['actor_name'], w=100), href=f"/actor?actorID={actor['actor_id']}"),
                                                         dmc.Text(actor['character'], w=100, size='sm'),
                                                     ],
                                                     direction='column',
@@ -176,7 +168,7 @@ def showMovieRec(genomes, movieID):
     movieRecsHTML = html.Div(
         children=[
                 dmc.Divider(variant="solid" , style={'margin-top' : '25px', 'margin-bottom' : '25px'}),
-                dmc.Text('Actors/Actresses', size='xl'),
+                dmc.Text('Similar Movies', size='xl'),
                 dmc.ScrollArea(
                     w=1300, h=280,
                     scrollbars='x',
@@ -187,7 +179,7 @@ def showMovieRec(genomes, movieID):
                                 dmc.Flex(
                                     children=[
                                         dmc.Image(src=f"https://image.tmdb.org/t/p/original{movie['poster_path']}" if movie['poster_path'] else "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe957375e70239d6abdd549fd7568c89281b2179b5f4470e2e12895792dfa5.svg", h=150, w=100),
-                                        dcc.Link(dmc.Text(movie['title'], w=100), href=f"/movies/info?movieID={movie['movieId']}"),
+                                        dcc.Link(dmc.Text(movie['title'], w=100), href=f"/info?movieID={movie['movieId']}"),
                                     ],
                                     direction='column',
                                     h=200,

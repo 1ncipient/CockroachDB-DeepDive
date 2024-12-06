@@ -12,17 +12,8 @@ from dotenv import load_dotenv
 from sqlalchemy import select
 
 load_dotenv()
-DATABASE_URL = os.getenv('DATABASE_URL')
-# session = Session()
+DATABASE_URL = os.getenv('COCKROACH_DATABASE_URL')
 dash.register_page(__name__, path='/actor')
-
-
-# test = select(MovieMetadata)
-
-# for user in session.scalars(test):
-#     print(user)
-
-#specificActor = pd.read_sql("SELECT a.\"movieId\", a.profile_path, a.actor_id, a.actor_name, a.character, m.poster_path FROM actors a JOIN movie_metadata m ON a.\"movieId\" = m.\"movieId\" WHERE actor_id = 31;", DATABASE_URL)
 
 def layout(actorID=None, **other_unknown_query_strings):
     return html.Div(
@@ -78,7 +69,7 @@ def showActorInfo(nClicks, actorID):
                                                 dmc.Flex(
                                                     children=[
                                                         dmc.Image(src=f"https://image.tmdb.org/t/p/original{actor['poster_path']}" if actor['poster_path'] else "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe957375e70239d6abdd549fd7568c89281b2179b5f4470e2e12895792dfa5.svg", h=150, w=100),
-                                                        dcc.Link(dmc.Text(actor['character'], w=100), href=f"/movies/info?movieID={actor['movieId']}"),
+                                                        dcc.Link(dmc.Text(actor['character'], w=100), href=f"/info?movieID={actor['movieId']}"),
                                                     ],
                                                     direction='column',
                                                     h=200,
