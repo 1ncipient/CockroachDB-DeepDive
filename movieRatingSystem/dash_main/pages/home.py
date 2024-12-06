@@ -34,7 +34,7 @@ hero_section = html.Div(
                     style={
                         'fontSize': '48px',
                         'marginBottom': '24px',
-                        'color': COLORS['text'],
+                        'color': COLORS['surface'],
                         'textShadow': '0 2px 4px rgba(0,0,0,0.8)'
                     }
                 ),
