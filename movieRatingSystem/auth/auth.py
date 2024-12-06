@@ -36,7 +36,7 @@ def login_post():
             if user:
                 session['user_id'] = user.id
                 flash(f"Welcome, {user.username}!", "success")
-                return redirect('/movies')  # Changed from '/movies/search' to '/movies'
+                return redirect('/home')  # redirect to /home/
             else:
                 flash("Invalid username or password.", "danger")
         except ValueError as e:
