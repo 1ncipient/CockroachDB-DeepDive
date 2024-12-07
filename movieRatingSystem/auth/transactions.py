@@ -16,7 +16,7 @@ ACID properties of transactions:
 - Durability: Changes made by a transaction are permanent and are not lost.
 """
 
-from movieRatingSystem.models.auth_models import User
+from ..models.auth_models import User  # Changed to relative import
 from uuid import uuid4
 from sqlalchemy.sql.expression import func
 
@@ -77,7 +77,6 @@ def login_user_transaction(session, username: str, plain_password: str, verify_p
     
     return user
 
-
 def update_password_transaction(session, user_id: str, hashed_password: str) -> bool:
     """
     Update the password of a user.
@@ -96,7 +95,7 @@ def update_password_transaction(session, user_id: str, hashed_password: str) -> 
     user.update_last_active()
     return True
     
-def remove_user_transaction(session, user_id: str) -> bool:
+def delete_user_transaction(session, user_id: str) -> bool:  # Renamed from remove_user_transaction to match AuthManager
     """
     Remove a user from the users table.
     

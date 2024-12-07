@@ -14,10 +14,16 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 from sqlalchemy_cockroachdb import run_transaction
-from movieRatingSystem.models.auth_models import User
+from ..models.auth_models import User
 import os
 from typing import List
-import transactions
+from . import transactions  # Import transactions from the same directory
+from .transactions import (  # Import specific functions
+    add_user_transaction,
+    login_user_transaction,
+    update_password_transaction,
+    delete_user_transaction
+)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 

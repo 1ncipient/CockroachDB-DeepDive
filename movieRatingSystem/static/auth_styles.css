@@ -1,23 +1,79 @@
-body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
+.auth-forms {
+    max-width: 400px;
+    margin: 20px auto;
     padding: 20px;
 }
 
-form {
-    margin-top: 20px;
+.form-group {
+    margin-bottom: 15px;
 }
 
-label {
-    display: inline-block;
-    width: 100px;
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
 }
 
-input {
-    margin-bottom: 10px;
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.form-text {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.875em;
+    color: #6c757d;
+}
+
+.messages {
+    margin: 20px 0;
+}
+
+.success {
+    color: green;
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #e8f5e9;
+}
+
+.danger {
+    color: red;
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #ffebee;
 }
 
 button {
-    margin-top: 10px;
-    padding: 5px 10px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+.welcome-header {
+    text-align: center;
+    margin: 30px 0;
+    color: #333;
+}
+
+.register-link, .login-link {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.register-link a, .login-link a {
+    color: #2196F3;
+    text-decoration: none;
+}
+
+.register-link a:hover, .login-link a:hover {
+    text-decoration: underline;
 }
