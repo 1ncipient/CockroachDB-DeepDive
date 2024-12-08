@@ -35,7 +35,6 @@ def login_post():
             user = auth_manager.login_user(username, password)
             if user:
                 session['user_id'] = user.id
-                flash(f"Welcome, {user.username}!", "success")
                 return redirect('/home')  # redirect to /home/
             else:
                 flash("Invalid username or password.", "danger")
