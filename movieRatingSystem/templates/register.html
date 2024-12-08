@@ -1,11 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS4411 Movie Database - Register</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='auth_styles.css') }}">
-    
 </head>
 <body>
     <div class="welcome-header">
@@ -13,29 +9,28 @@
     </div>
 
     <div class="auth-forms">
-        <h2>Register</h2>
-        <form method="POST" action="{{ url_for('auth.register') }}">
+        <form action="{{ url_for('auth.register') }}" method="POST" class="login-form">
             <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required>
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Choose a username" required>
             </div>
-            
+
             <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" required>
+                <label>Email</label>
+                <input type="email" name="email" placeholder="Enter your email" required>
             </div>
-            
+
             <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required>
-                <small class="form-text">(8-24 characters)</small>
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Choose a password" required>
             </div>
-            
+
             <button type="submit">Register</button>
         </form>
-        
-        <div class="login-link">
-            <p>Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a></p>
+
+        <div class="register-link">
+            <span>Already have an account?</span>
+            <a href="{{ url_for('auth.login') }}">Login here</a>
         </div>
     </div>
 
@@ -43,7 +38,9 @@
         {% if messages %}
             <div class="messages">
                 {% for category, message in messages %}
-                    <div class="{{ category }}">{{ message }}</div>
+                    <div class="{{ category }}">
+                        {{ message }}
+                    </div>
                 {% endfor %}
             </div>
         {% endif %}
