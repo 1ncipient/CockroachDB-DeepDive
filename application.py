@@ -17,7 +17,12 @@ def create_app(name=None):
     app.secret_key = "super-secret-key"
     
     # Enable debug mode
-    app.debug = True
+    # app.debug = True
+    
+    app.logger.disabled = True
+    log = logging.getLogger('werkzeug')
+    # Set this to False to enable logging
+    log.disabled = True
     
     # Session config
     app.config.update(
@@ -74,4 +79,5 @@ def create_app(name=None):
 
 if __name__ == "__main__":
     app = create_app()
+    app.logger.info("Running app...")
     app.run(debug=True)

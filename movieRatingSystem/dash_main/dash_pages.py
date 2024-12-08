@@ -89,6 +89,21 @@ def sales_tool(server):
                 children=[
                     create_nav_link("Home", "/home/"),
                     create_nav_link("Movies", "/movies/"),
+                    # Add this new html.Div for the logout button
+                    html.Div(
+                        dcc.Link(
+                            dmc.Button(
+                                "Logout",
+                                leftSection=[DashIconify(icon="carbon:logout")],  # Changed from leftIcon to leftSection
+                                variant="filled",
+                                color="red",
+                                size="sm",
+                                styles={'root': {'backgroundColor': '#dc2626', '&:hover': {'backgroundColor': '#b91c1c'}}}
+                            ),
+                            href="/auth/logout",
+                            refresh=True
+                        )
+                    )
                 ]
             )
         ]

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <pattern id="polaroids" x="0" y="0" width="400" height="400" patternUnits="userSpaceOnUse">
+      <!-- Titanic "I'm Flying" Scene -->
+      <g transform="translate(30,20) rotate(-8)">
+        <rect x="0" y="0" width="100" height="120" fill="white" stroke="#ddd" stroke-width="1" opacity="0.3"/>
+        <rect x="10" y="10" width="80" height="70" fill="#f0f0f0" opacity="0.3"/>
+        <!-- Ship bow silhouette -->
+        <path d="M20 60 L50 60 L90 45 L90 65 L20 65 Z" fill="#a0a0a0" opacity="0.4"/>
+        <!-- Couple silhouette -->
+        <path d="M45 40 L55 40 L55 20 L45 20 Z" fill="#808080" opacity="0.5"/>
+        <rect x="25" y="95" width="50" height="5" fill="#d0d0d0" opacity="0.3"/>
+      </g>
+      
+      <!-- ET Bicycle Scene -->
+      <g transform="translate(250,60) rotate(12)">
+        <rect x="0" y="0" width="100" height="120" fill="white" stroke="#ddd" stroke-width="1" opacity="0.3"/>
+        <rect x="10" y="10" width="80" height="70" fill="#f0f0f0" opacity="0.3"/>
+        <!-- Moon and bicycle silhouette -->
+        <circle cx="60" cy="25" r="15" fill="#a0a0a0" opacity="0.4"/>
+        <path d="M40 55 Q60 35 80 55" stroke="#808080" stroke-width="3" opacity="0.5" fill="none"/>
+        <rect x="25" y="95" width="50" height="5" fill="#d0d0d0" opacity="0.3"/>
+      </g>
+      
+      <!-- Matrix Bullet Time -->
+      <g transform="translate(140,180) rotate(-15)">
+        <rect x="0" y="0" width="100" height="120" fill="white" stroke="#ddd" stroke-width="1" opacity="0.3"/>
+        <rect x="10" y="10" width="80" height="70" fill="#f0f0f0" opacity="0.3"/>
+        <!-- Neo dodging bullets -->
+        <path d="M30 40 C50 20, 70 60, 90 40" stroke="#808080" stroke-width="3" opacity="0.5" fill="none"/>
+        <circle cx="45" cy="35" r="3" fill="#a0a0a0" opacity="0.4"/>
+        <circle cx="60" cy="45" r="3" fill="#a0a0a0" opacity="0.4"/>
+        <circle cx="75" cy="35" r="3" fill="#a0a0a0" opacity="0.4"/>
+        <rect x="25" y="95" width="50" height="5" fill="#d0d0d0" opacity="0.3"/>
+      </g>
+
+      <!-- Star Wars Lightsaber Duel -->
+      <g transform="translate(320,250) rotate(5)">
+        <rect x="0" y="0" width="100" height="120" fill="white" stroke="#ddd" stroke-width="1" opacity="0.3"/>
+        <rect x="10" y="10" width="80" height="70" fill="#f0f0f0" opacity="0.3"/>
+        <!-- Crossing lightsabers -->
+        <line x1="35" y1="30" x2="65" y2="60" stroke="#4169e1" stroke-width="4" opacity="0.4"/>
+        <line x1="65" y1="30" x2="35" y2="60" stroke="#dc2626" stroke-width="4" opacity="0.4"/>
+        <rect x="25" y="95" width="50" height="5" fill="#d0d0d0" opacity="0.3"/>
+      </g>
+
+      <!-- Jurassic Park Gate -->
+      <g transform="translate(50,300) rotate(-3)">
+        <rect x="0" y="0" width="100" height="120" fill="white" stroke="#ddd" stroke-width="1" opacity="0.3"/>
+        <rect x="10" y="10" width="80" height="70" fill="#f0f0f0" opacity="0.3"/>
+        <!-- Gate silhouette -->
+        <path d="M30 60 L30 30 L50 15 L70 30 L70 60" fill="none" stroke="#808080" stroke-width="3" opacity="0.5"/>
+        <path d="M40 60 L40 35 L50 25 L60 35 L60 60" fill="none" stroke="#808080" stroke-width="2" opacity="0.4"/>
+        <rect x="25" y="95" width="50" height="5" fill="#d0d0d0" opacity="0.3"/>
+      </g>
+    </pattern>
+  </defs>
+  
+  <!-- Background -->
+  <rect x="0" y="0" width="100%" height="100%" fill="#f8f9fa"/>
+  <!-- Pattern -->
+  <rect x="0" y="0" width="100%" height="100%" fill="url(#polaroids)"/>
+</svg>

@@ -1,79 +1,116 @@
-.auth-forms {
-    max-width: 400px;
-    margin: 20px auto;
-    padding: 20px;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
-}
-
-.form-text {
-    display: block;
-    margin-top: 5px;
-    font-size: 0.875em;
-    color: #6c757d;
-}
-
-.messages {
-    margin: 20px 0;
-}
-
-.success {
-    color: green;
-    padding: 10px;
-    margin: 5px 0;
-    background-color: #e8f5e9;
-}
-
-.danger {
-    color: red;
-    padding: 10px;
-    margin: 5px 0;
-    background-color: #ffebee;
-}
-
-button {
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    width: 100%;
-}
-
-button:hover {
-    background-color: #45a049;
+/* auth_styles.css */
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background-color: #f8f9fa;
+    background-image: url('/static/images/polaroid-bg.svg');
+    background-repeat: repeat;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;  /* Remove padding */
+    height: 100vh;  /* Set exact viewport height */
+    overflow: hidden;  /* Prevent scrolling */
 }
 
 .welcome-header {
     text-align: center;
-    margin: 30px 0;
-    color: #333;
+    margin: 40px 0;  /* Reduce margin */
+    color: #4169e1;
 }
 
-.register-link, .login-link {
+.auth-forms {
+    max-width: 400px;
+    margin: 0 auto;  /* Remove top/bottom margin */
+    padding: 32px;  /* Reduce padding */
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 32px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #1f2937;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #4169e1;
+    box-shadow: 0 0 0 2px rgba(65, 105, 225, 0.1);
+}
+
+.form-group input::placeholder {
+    color: #9ca3af;
+}
+
+button, .btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #4169e1;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin: 8px 0;
+}
+
+button:hover, .btn:hover {
+    background-color: #3451b2;
+}
+
+.register-link {
     text-align: center;
-    margin-top: 15px;
+    margin-top: 32px;
 }
 
-.register-link a, .login-link a {
-    color: #2196F3;
+.register-link span {
+    color: #4b5563;
+    font-size: 1rem;
+}
+
+.register-link a {
+    color: #4169e1;
     text-decoration: none;
+    font-size: 1rem;
+    margin-left: 4px;
 }
 
-.register-link a:hover, .login-link a:hover {
-    text-decoration: underline;
+.messages {
+    max-width: 400px;
+    margin: 20px auto;
+}
+
+.success {
+    background-color: #ecfdf5;
+    color: #047857;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 8px 0;
+}
+
+.danger {
+    background-color: #fef2f2;
+    color: #b91c1c;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 8px 0;
 }
