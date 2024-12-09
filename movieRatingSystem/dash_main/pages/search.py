@@ -15,6 +15,7 @@ from movieRatingSystem.utils.db_utils import (
 )
 from movieRatingSystem.styles.common import COLORS, STYLES
 from movieRatingSystem.logging_config import get_logger
+from movieRatingSystem.utils.export_query_data import QueryExporter
 from datetime import datetime, date
 from time import perf_counter
 from dash.exceptions import PreventUpdate
@@ -56,7 +57,7 @@ def get_rating_color(rating: Union[float, int]) -> str:
     else:
         return "rgba(192, 57, 43, 0.618)"    # Poor
 
-def create_movie_grid(movies):
+def create_movie_grid(movies, db_type):
     """Create a grid of movie cards."""
     if not movies:
         return dmc.Text("No movies found", ta="center", c="dimmed", fz="lg")
@@ -67,10 +68,10 @@ def create_movie_grid(movies):
         style={
             '@media (max-width: 600px)': {'gridTemplateColumns': 'repeat(1, 1fr)'}
         },
-        children=[create_movie_card(movie) for movie in movies]
+        children=[create_movie_card(movie, db_type) for movie in movies]
     )
 
-def create_movie_card(movie):
+def create_movie_card(movie, db_type):
     """Create a movie card with rating badge."""
     rating = movie.get('vote_average', 0)
     rating_color = get_rating_color(rating)
@@ -94,7 +95,7 @@ def create_movie_card(movie):
         children=[
             # Movie poster as background
             dmc.Image(
-                src=f"https://image.tmdb.org/t/p/w500{movie.get('poster_path')}" if movie.get('poster_path') else "/assets/no-poster.jpg",
+                src=f"https://image.tmdb.org/t/p/w500{movie.get('poster_path')}" if movie.get('poster_path') else "https://placehold.co/500x750?text=Not+Available",
                 h=400,
                 fit="cover",
                 w="100%"
@@ -183,7 +184,7 @@ def create_movie_card(movie):
                                                 width=16
                                             )
                                         ),
-                                        href=f"/info?movieID={movie['movieId']}"
+                                        href=f"/info?movieID={movie['movieId']}&db_type={db_type}"
                                     )
                                 ]
                             )
@@ -638,7 +639,8 @@ def update_movie_results(db_name, session, n_clicks, page, sort_by, title=None, 
         query_info = {
             'query_time': f"{query_time:.3f}s",
             'query_statement': page_data.get('query_statement', 'N/A'),
-            'total_results': page_data.get('total_count', 0)
+            'total_results': page_data.get('total_count', 0),
+            'query_explanation': page_data.get('query_explanation', 'N/A')
         }
         
         # Calculate total pages
@@ -647,8 +649,11 @@ def update_movie_results(db_name, session, n_clicks, page, sort_by, title=None, 
         # Log results
         movie_titles = [movie.get('title', 'Unknown') for movie in page_data.get('results', [])]
         logger.info(f"{db_name} results - Page {page}/{total_pages}: {', '.join(movie_titles)}")
+
+        query_exporter = QueryExporter(output_file=f"{db_name}_query_history.json")
+        query_exporter.add_query(query_info['query_statement'], query_info['query_time'], query_info['total_results'], query_info['query_explanation'])
         
-        return create_movie_grid(page_data.get('results', [])), total_pages, False, query_info
+        return create_movie_grid(page_data.get('results', []), db_name), total_pages, False, query_info
     except Exception as e:
         logger.error(f"Error updating {db_name} results: {str(e)}", exc_info=True)
         return [], 1, False, {'query_time': 'N/A', 'query_statement': 'Error occurred', 'total_results': 0}
