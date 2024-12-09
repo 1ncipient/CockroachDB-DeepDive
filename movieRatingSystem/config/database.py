@@ -3,9 +3,11 @@ from sqlalchemy.orm import sessionmaker
 import os
 from typing import Dict, Optional
 from dotenv import load_dotenv
-
+from movieRatingSystem.logging_config import get_logger
 # Load environment variables
 load_dotenv()
+
+logger = get_logger()
 
 class DatabaseConfig:
     """Database configuration and connection management."""
@@ -25,7 +27,11 @@ class DatabaseConfig:
                 'max_overflow': int(os.getenv('DB_MAX_OVERFLOW', '10')),
                 'pool_timeout': int(os.getenv('DB_POOL_TIMEOUT', '30')),
                 'pool_recycle': int(os.getenv('DB_POOL_RECYCLE', '1800')),
-            }
+                'connect_args': {
+                    'application_name': 'movieDB',
+                    'options': '--retry_write=true'
+                }
+            },
         }
         
         # PostgreSQL configuration
@@ -36,6 +42,9 @@ class DatabaseConfig:
                 'max_overflow': int(os.getenv('DB_MAX_OVERFLOW', '10')),
                 'pool_timeout': int(os.getenv('DB_POOL_TIMEOUT', '30')),
                 'pool_recycle': int(os.getenv('DB_POOL_RECYCLE', '1800')),
+                'connect_args': {
+                    'application_name': 'movieDB'
+                }
             }
         }
         
@@ -48,9 +57,6 @@ class DatabaseConfig:
                 'pool_timeout': int(os.getenv('DB_POOL_TIMEOUT', '30')),
                 'pool_recycle': int(os.getenv('DB_POOL_RECYCLE', '1800')),
                 'pool_pre_ping': True,  # Verify connections before usage
-                'connect_args': {
-                    'charset': 'utf8mb4'  # Proper UTF-8 support
-                }
             }
         }
         
@@ -72,6 +78,7 @@ class DatabaseConfig:
                 config['url'],
                 **config['engine_args']
             )
+            logger.info(f"Engine created for {db_name}")
             self.session_factories[db_name] = sessionmaker(bind=self.engines[db_name])
         
         return self.engines[db_name]

@@ -1,99 +1,141 @@
 #!/usr/bin/env python3
-
 import os
 import pandas as pd
 import argparse
+import dotenv
 
-from sqlalchemy import create_engine, inspect, text
-from psycopg2.errors import SerializationFailure, Error
-from psycopg2 import Error
-from models.movie_models import *
+from sqlalchemy import create_engine, inspect, text, MetaData, event
+from psycopg2.errors import SerializationFailure
+from sqlalchemy.exc import OperationalError, SQLAlchemyError, InternalError
+from movieRatingSystem.models.movie_models import *
+from movieRatingSystem.logging_config import get_logger
+from movieRatingSystem.config.database import DatabaseConfig
+from sqlalchemy.ext.automap import automap_base
 
-MAX_RETRIES = 5
+logger = get_logger()
+
+MAX_RETRIES = 10
 
 def createTables(engine, drop=False):
     if drop:
-        print("Dropping all Table!\n")
+        logger.info("Dropping all Tables!")
         Base.metadata.drop_all(engine)
 
     try:
         Base.metadata.create_all(engine)
-        print("Tables created successfully!\n")
+        logger.info("Tables created successfully!")
     except Exception as e: 
-        print(f"An error occurred: {e}\n")
+        logger.error(f"An error occurred: {e}")
 
 def showTables(engine):
-    # Get the inspector for the engine
     inspector = inspect(engine)
-
-    # List all tables in the database
     tables = inspector.get_table_names()
-    print("Tables in the database:", tables, '\n')
+    logger.info(f"Tables in the database: {tables}")
+    
+    for table_name in tables:
+        table = Base.metadata.tables.get(table_name)
+        if table is not None:
+            table.metadata.reflect(bind=engine)
 
-    return tables
+def uploadTablesData(db_type, file_path, table_name, engine, chunk_size):
+    logger.info(f"Inserting [{file_path}] into table [{table_name}] for {db_type} database")
 
-def uploadTablesData(file_path, table_name, engine, chunk_size):
-    print(f"Inserting [{file_path}] into table [{table_name}]\n")
-
-    with engine.connect() as con:
-        # Safe truncation with retry logic
-        for attempt in range(MAX_RETRIES):
-            try:
-                # Upload data to the table
-                df = pd.read_csv(open(file_path,'r', newline=None))
-                df.to_sql(table_name, con=engine, index=False, if_exists='append', chunksize=chunk_size, method='multi')
-                print(f"Data inserted into [{table_name}] successfully.\n")
-                break
-            except SerializationFailure as e: # This is a TransactionRetryError
-                if attempt < MAX_RETRIES - 1:
-                    print(f"Retrying transaction for table [{table_name}] (attempt {attempt + 1})...")
-                    continue
+    # Safe truncation with retry logic
+    for attempt in range(MAX_RETRIES):
+        try:
+            connection = engine.connect()
+            transaction = connection.begin()
+            with open(file_path, 'r', newline=None) as file:
+                df = pd.read_csv(file)
+                if db_type == 'mariadb' and table_name == 'movies':
+                    # MariaDB does not support ARRAY type, so we need to convert the genres column to a JSON string
+                    df['genres'] = df['genres'].apply(lambda x: json.dumps([x.strip() for x in x[1:-1].split(',') if x.strip()]))
+                    df.to_sql(table_name, con=connection, index=False, if_exists='append', chunksize=chunk_size, method='multi')
                 else:
-                    raise Error("Transaction maximum retry reached!\n")
-            except Error as e:
-                print(f"Failed to upload data to table [{table_name}]: {e}\n")
-                raise e
+                    df.to_sql(table_name, con=connection, index=False, if_exists='append', chunksize=chunk_size, method='multi')
+                transaction.commit()
+                logger.info(f"Data inserted into [{table_name}] successfully.")
+            break
+        except (SerializationFailure, OperationalError, InternalError) as e:
+            logger.error(f"Failed to upload data to table [{table_name}]: {e}")
+            if attempt < MAX_RETRIES - 1:
+                transaction.rollback()
+                chunk_size = chunk_size // 3
+                logger.info(f"Retrying transaction for table [{table_name}] (attempt {attempt + 1}, chunk size: {chunk_size})...")
+            else:   
+                raise SQLAlchemyError("Transaction maximum retry reached!\n")
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to upload data to table [{table_name}]: {e}")
+            raise e
 
 def main():
-    # Set up argument parser
-    parser = argparse.ArgumentParser(description="Set up CockroachDB for MovieLens.")
-    parser.add_argument("path", help="The path to process")
+    parser = argparse.ArgumentParser(description="Set up database for MovieLens.")
+    parser.add_argument("--db_type", help="The type of database to use")
     parser.add_argument(
-        "-clean", 
+        "--clean", 
         action="store_true", 
         help="If set, clean the database before setup."
     )
+    parser.add_argument("path", help="The path to process")
     args = parser.parse_args()
 
-    # Get the path from the arguments
+    logger.info(f"Running with database type: {args.db_type} and clean flag: {args.clean}")
+
     data_path = args.path
-
-    # Validate DATABASE_URL
-    if "DATABASE_URL" not in os.environ:
-        print("Error: DATABASE_URL environment variable is not set.\n")
-        return
-
+    
     try:
-        engine = create_engine(os.environ["DATABASE_URL"], connect_args={"application_name": "movieDB", "options": "--retry_write=true"})
-        print("Database connection successful.\n")
+        match args.db_type:
+            case 'cockroach':
+                engine = DatabaseConfig().get_engine(args.db_type)
+                createTables(engine, args.clean)
+                showTables(engine)
+                
+                # Uploading dataset tables
+                uploadTablesData(args.db_type, data_path + MovieMetadata.filename, MovieMetadata.__tablename__, engine, 50000)
+                uploadTablesData(args.db_type, data_path + Credits.filename, Credits.__tablename__, engine, 2000)
+                uploadTablesData(args.db_type, data_path + Links.filename, Links.__tablename__, engine, 50000)
+                uploadTablesData(args.db_type, data_path + Movies.filename, Movies.__tablename__, engine, 50000)
+                uploadTablesData(args.db_type, data_path + Ratings.filename, Ratings.__tablename__, engine, 50000)
+                uploadTablesData(args.db_type, data_path + GenomeTags.filename, GenomeTags.__tablename__, engine, 50000)
+                uploadTablesData(args.db_type, data_path + GenomeScores.filename, GenomeScores.__tablename__, engine, 2000)
+
+                engine.dispose()
+            case 'postgres':
+                engine = DatabaseConfig().get_engine(args.db_type)
+                createTables(engine, args.clean)
+                showTables(engine)
+                
+                # Uploading dataset tables
+                uploadTablesData(args.db_type, data_path + MovieMetadata.filename, MovieMetadata.__tablename__, engine, 100000)
+                uploadTablesData(args.db_type, data_path + Credits.filename, Credits.__tablename__, engine, 50000)
+                uploadTablesData(args.db_type, data_path + Links.filename, Links.__tablename__, engine, 100000)
+                uploadTablesData(args.db_type, data_path + Movies.filename, Movies.__tablename__, engine, 100000)
+                uploadTablesData(args.db_type, data_path + Ratings.filename, Ratings.__tablename__, engine, 100000)
+                uploadTablesData(args.db_type, data_path + GenomeTags.filename, GenomeTags.__tablename__, engine, 100000)
+                uploadTablesData(args.db_type, data_path + GenomeScores.filename, GenomeScores.__tablename__, engine, 100000)
+
+                engine.dispose()
+            case 'mariadb':
+                engine = DatabaseConfig().get_engine(args.db_type)
+                createTables(engine, args.clean)
+                showTables(engine)
+                
+                # Uploading dataset tables
+                uploadTablesData(args.db_type, data_path + MovieMetadata.filename, MovieMetadata.__tablename__, engine, 100000)    
+                uploadTablesData(args.db_type, data_path + Credits.filename, Credits.__tablename__, engine, 50000)
+                uploadTablesData(args.db_type, data_path + Links.filename, Links.__tablename__, engine, 100000)
+                uploadTablesData(args.db_type, data_path + Movies.filename, Movies.__tablename__, engine, 100000)
+                uploadTablesData(args.db_type, data_path + Ratings.filename, Ratings.__tablename__, engine, 100000)
+                uploadTablesData(args.db_type, data_path + GenomeTags.filename, GenomeTags.__tablename__, engine, 100000)
+                uploadTablesData(args.db_type, data_path + GenomeScores.filename, GenomeScores.__tablename__, engine, 100000)
+
+                engine.dispose()
+            case _:
+                raise ValueError(f"Unsupported database type: {args.db_type}")
     except Exception as e:
-        print("Failed to connect to database.\n")
-        print(f"{e}")
-
-    createTables(engine, args.clean)
-    showTables(engine)
-    
-    # Uploading dataset tables to CockroachDB Cloud.
-    uploadTablesData(data_path + MovieMetadata.filename, MovieMetadata.__tablename__, engine, 50000)
-    uploadTablesData(data_path + Credits.filename, Credits.__tablename__, engine, 2000)
-    uploadTablesData(data_path + Links.filename, Links.__tablename__, engine, 50000)
-    uploadTablesData(data_path + Movies.filename, Movies.__tablename__, engine, 50000)
-    uploadTablesData(data_path + Ratings.filename, Ratings.__tablename__, engine, 50000)
-    uploadTablesData(data_path + GenomeTags.filename, GenomeTags.__tablename__, engine, 50000)
-    uploadTablesData(data_path + GenomeScores.filename, GenomeScores.__tablename__, engine, 2000)
-
-    engine.dispose()
-    
+        logger.error(f"Failed to connect to database.")
+        logger.error(f"{e}")
+        return
 
 if __name__ == '__main__':
     main()
