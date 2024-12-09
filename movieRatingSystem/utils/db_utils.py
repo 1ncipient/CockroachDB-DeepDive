@@ -2,17 +2,13 @@ from functools import wraps
 from movieRatingSystem.config.database import db_config
 from movieRatingSystem.utils.query_builder import MovieQueryBuilder
 from movieRatingSystem.models.movie_models import MovieMetadata, Movies, Credits, Links, Ratings, GenomeScores, GenomeTags
-from sqlalchemy import func, and_, or_, Integer, Float, String
+from sqlalchemy import func, and_, or_, Integer, Float, String, text, select
 from movieRatingSystem.logging_config import get_logger
 from movieRatingSystem.utils.language_utils import create_language_options
 from datetime import date
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 
 logger = get_logger()
-
-class DatabaseError(Exception):
-    """Custom exception for database errors."""
-    pass
 
 def handle_db_error(db_name: str, error: Exception) -> dict:
     """Handle database errors and return appropriate response."""
@@ -29,8 +25,16 @@ def with_db_session(func):
     """Decorator to handle database session management."""
     @wraps(func)
     def wrapper(*args, **kwargs):
-        # Get the database name from the function name or kwargs
-        db_name = kwargs.pop('db_name', 'cockroach')  # Default to CockroachDB
+        # Get the database name from the function name
+        db_name = None
+        if 'cockroach' in func.__name__:
+            db_name = 'cockroach'
+        elif 'postgres' in func.__name__:
+            db_name = 'postgres'
+        elif 'mariadb' in func.__name__:
+            db_name = 'mariadb'
+        else:
+            db_name = kwargs.pop('db_name', 'cockroach')  # Default to CockroachDB
         
         try:
             session = db_config.create_session(db_name)
@@ -132,13 +136,53 @@ def get_all_keywords(session):
 def get_movie_by_id(session, movie_id):
     """Get movie details by ID using MovieQueryBuilder."""
     try:
+        # Get basic movie info
         builder = MovieQueryBuilder(session)
         result = (
             builder.base_query()
             .filter_by_movie_id(movie_id)
             .paginate(page=1, items_per_page=1)
         )
-        return result['results'][0] if result['results'] else None
+        
+        if not result['results']:
+            return None
+            
+        movie_info = result['results'][0]
+        
+        # Get genome tags with relevance scores
+        genome_query = (
+            session.query(
+                GenomeTags.tag,
+                func.cast(
+                    func.jsonb_extract_path_text(GenomeScores.relevances, func.cast(GenomeTags.tagId, String)),
+                    Float
+                ).label('relevance')
+            )
+            .join(
+                GenomeScores,
+                and_(
+                    GenomeScores.movieId == movie_id,
+                    func.jsonb_exists(
+                        GenomeScores.relevances,
+                        func.cast(GenomeTags.tagId, String)
+                    )
+                )
+            )
+            .order_by(text('relevance DESC'))
+            .limit(20)  # Get top 20 most relevant tags
+        )
+        
+        # Add tags to movie info
+        tags_with_scores = []
+        for tag, relevance in genome_query.all():
+            tags_with_scores.append({
+                'tag': tag,
+                'relevance': float(relevance) if relevance is not None else 0.0
+            })
+        
+        movie_info['tags'] = tags_with_scores
+        
+        return movie_info
     except Exception as e:
         logger.error(f"Error in get_movie_by_id: {str(e)}", exc_info=True)
         raise
@@ -151,7 +195,14 @@ def get_movie_credits(session, movie_id):
             .filter(Credits.movieId == movie_id)
         )
         result = query.first()
-        return dict(result._mapping) if result else None
+        if result:
+            # Convert SQLAlchemy model to dictionary
+            return {
+                'movieId': result.movieId,
+                'cast_': result.cast_,
+                'crew': result.crew
+            }
+        return None
     except Exception as e:
         logger.error(f"Error in get_movie_credits: {str(e)}", exc_info=True)
         raise
@@ -304,25 +355,23 @@ def get_similar_movies(session, movie_id, limit=6):
                 MovieMetadata.title,
                 MovieMetadata.poster_path,
                 MovieMetadata.vote_average,
+                MovieMetadata.popularity,
                 Movies.genres,
                 func.avg(Ratings.rating).label('user_rating')
             )
             .join(Movies, MovieMetadata.movieId == Movies.movieId)
             .outerjoin(Ratings, MovieMetadata.movieId == Ratings.movieId)
             .filter(MovieMetadata.movieId != movie_id)  # Exclude the current movie
+            .filter(Movies.genres.overlap(base_movie.genres))  # Basic genre overlap filter
             .group_by(
                 MovieMetadata.movieId,
                 MovieMetadata.title,
                 MovieMetadata.poster_path,
                 MovieMetadata.vote_average,
+                MovieMetadata.popularity,
                 Movies.genres
             )
         )
-
-        # Add genre similarity condition
-        if base_movie.genres:
-            genre_conditions = [Movies.genres.overlap(base_movie.genres)]
-            query = query.filter(or_(*genre_conditions))
 
         # Add genome score similarity if available
         if base_genome and base_genome.relevances:
@@ -349,14 +398,30 @@ def get_similar_movies(session, movie_id, limit=6):
                 )
             query = query.filter(or_(*tag_conditions))
 
-        # Order by similarity and rating
-        query = query.order_by(
-            func.count(func.array_intersect(Movies.genres, base_movie.genres)).desc(),
-            MovieMetadata.vote_average.desc()
-        ).limit(limit)
-
+        # Get all potential similar movies
         results = query.all()
-        return [dict(r._mapping) for r in results]
+        
+        # Sort results by genre similarity and popularity
+        sorted_results = sorted(
+            results,
+            key=lambda x: (
+                len(set(x.genres) & set(base_movie.genres)),  # Number of matching genres
+                x.popularity or 0  # Popularity (default to 0 if None)
+            ),
+            reverse=True
+        )[:limit]
+        
+        return [
+            {
+                'movieId': r.movieId,
+                'title': r.title,
+                'poster_path': r.poster_path,
+                'vote_average': r.vote_average,
+                'genres': r.genres,
+                'user_rating': float(r.user_rating) if r.user_rating else None
+            }
+            for r in sorted_results
+        ]
     except Exception as e:
         logger.error(f"Error in get_similar_movies: {str(e)}", exc_info=True)
         raise
@@ -367,7 +432,7 @@ def get_actor_info(session, actor_id):
         # First get all movies where this actor appears in the cast
         movies_query = (
             session.query(
-                Credits.cast,
+                Credits.cast_,
                 MovieMetadata.movieId,
                 MovieMetadata.title,
                 MovieMetadata.poster_path,
@@ -377,7 +442,13 @@ def get_actor_info(session, actor_id):
             )
             .join(MovieMetadata, Credits.movieId == MovieMetadata.movieId)
             .join(Movies, MovieMetadata.movieId == Movies.movieId)
-            .filter(Credits.cast.op('?|')([str(actor_id)]))  # JSONB operator to check if actor_id exists in cast array
+            .filter(
+                # Check if the actor's ID exists in the cast array
+                func.jsonb_path_exists(
+                    Credits.cast_,
+                    f'$[*] ? (@.id == {actor_id})'
+                )
+            )
         )
         
         movies = []
@@ -386,7 +457,7 @@ def get_actor_info(session, actor_id):
         for movie in movies_query.all():
             # Extract actor details from cast if not already found
             if not actor_details:
-                cast_list = movie.cast if isinstance(movie.cast, list) else []
+                cast_list = movie.cast_ if isinstance(movie.cast_, list) else []
                 for cast_member in cast_list:
                     if str(cast_member.get('id')) == str(actor_id):
                         actor_details = {
