@@ -295,3 +295,4 @@ dmypy.json
 
 MovieLens/*
 !MovieLens/data_process.py
+perf_log/*.json
