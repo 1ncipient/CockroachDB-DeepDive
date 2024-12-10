@@ -33,8 +33,6 @@ def layout(actorID=None, db_type='cockroach', **other_unknown_query_strings):
             html.Span(id='actorID', style={'display': 'None'}, children=actorID),
             html.Span(id='db-type', style={'display': 'None'}, children=db_type),
             dcc.Store(id='query-info'),
-            html.Div(id='actor-container'),
-            dmc.Space(h=20),
             dmc.Paper(
                 p="md",
                 shadow="sm",
@@ -71,6 +69,8 @@ def layout(actorID=None, db_type='cockroach', **other_unknown_query_strings):
                     dmc.Text(id='performance-metrics'),
                 ]
             ),
+            dmc.Space(h=20),
+            html.Div(id='actor-container'),
         ]
     )
 
