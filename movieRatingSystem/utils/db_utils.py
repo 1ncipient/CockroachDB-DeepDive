@@ -150,37 +150,50 @@ def get_movie_by_id(session, movie_id):
         movie_info = result['results'][0]
         
         # Get genome tags with relevance scores
-        genome_query = (
-            session.query(
-                GenomeTags.tag,
-                func.cast(
-                    func.jsonb_extract_path_text(GenomeScores.relevances, func.cast(GenomeTags.tagId, String)),
-                    Float
-                ).label('relevance')
-            )
-            .join(
-                GenomeScores,
-                and_(
-                    GenomeScores.movieId == movie_id,
-                    func.jsonb_exists(
-                        GenomeScores.relevances,
-                        func.cast(GenomeTags.tagId, String)
-                    )
-                )
-            )
-            .order_by(text('relevance DESC'))
-            .limit(20)  # Get top 20 most relevant tags
+        # First get the movie's genome scores
+        genome_scores = (
+            session.query(GenomeScores.relevances)
+            .filter(GenomeScores.movieId == movie_id)
+            .first()
         )
         
-        # Add tags to movie info
-        tags_with_scores = []
-        for tag, relevance in genome_query.all():
-            tags_with_scores.append({
-                'tag': tag,
-                'relevance': float(relevance) if relevance is not None else 0.0
-            })
-        
-        movie_info['tags'] = tags_with_scores
+        if genome_scores and genome_scores.relevances:
+            # Convert the relevances to a dictionary
+            relevances = genome_scores.relevances
+            
+            # Get tags for the relevance scores we have
+            genome_query = (
+                session.query(
+                    GenomeTags.tag,
+                    func.cast(
+                        func.jsonb_extract_path_text(
+                            func.cast(func.json_build_object(*[
+                                item for pair in [(str(k), str(v)) for k, v in relevances.items()]
+                                for item in pair
+                            ]), JSONB),
+                            func.cast(GenomeTags.tagId, String)
+                        ),
+                        Float
+                    ).label('relevance')
+                )
+                .filter(GenomeTags.tagId.in_([int(k) for k in relevances.keys()]))
+                .order_by(text('relevance DESC'))
+                .limit(20)
+            )
+            
+            # Add tags to movie info
+            tags_with_scores = []
+            genome_query_results = genome_query.all()
+            for tag, relevance in genome_query_results:
+                if relevance is not None:
+                    tags_with_scores.append({
+                        'tag': tag,
+                        'relevance': float(relevance)
+                    })
+            
+            movie_info['tags'] = tags_with_scores
+        else:
+            movie_info['tags'] = []
         
         return movie_info
     except Exception as e:
@@ -362,7 +375,6 @@ def get_similar_movies(session, movie_id, limit=6):
             .join(Movies, MovieMetadata.movieId == Movies.movieId)
             .outerjoin(Ratings, MovieMetadata.movieId == Ratings.movieId)
             .filter(MovieMetadata.movieId != movie_id)  # Exclude the current movie
-            .filter(Movies.genres.overlap(base_movie.genres))  # Basic genre overlap filter
             .group_by(
                 MovieMetadata.movieId,
                 MovieMetadata.title,
@@ -401,9 +413,16 @@ def get_similar_movies(session, movie_id, limit=6):
         # Get all potential similar movies
         results = query.all()
         
+        # Filter and sort results by genre similarity and popularity in Python
+        # since MariaDB doesn't support array operations well
+        filtered_results = [
+            r for r in results 
+            if any(genre in base_movie.genres for genre in r.genres)
+        ]
+        
         # Sort results by genre similarity and popularity
         sorted_results = sorted(
-            results,
+            filtered_results,
             key=lambda x: (
                 len(set(x.genres) & set(base_movie.genres)),  # Number of matching genres
                 x.popularity or 0  # Popularity (default to 0 if None)
@@ -429,6 +448,9 @@ def get_similar_movies(session, movie_id, limit=6):
 def get_actor_info(session, actor_id):
     """Get actor information and their movie appearances."""
     try:
+        # Detect database dialect
+        dialect_name = session.bind.dialect.name
+        
         # First get all movies where this actor appears in the cast
         movies_query = (
             session.query(
@@ -442,14 +464,33 @@ def get_actor_info(session, actor_id):
             )
             .join(MovieMetadata, Credits.movieId == MovieMetadata.movieId)
             .join(Movies, MovieMetadata.movieId == Movies.movieId)
-            .filter(
-                # Check if the actor's ID exists in the cast array
+        )
+        
+        # Apply dialect-specific JSON filtering
+        if dialect_name == 'cockroachdb':
+            # For CockroachDB, use a simpler JSON containment check
+            movies_query = movies_query.filter(
+                Credits.cast_.op('->>')('id').cast(String) == str(actor_id)
+            )
+        elif dialect_name == 'mariadb' or dialect_name == 'mysql':
+            # For MariaDB/MySQL, use JSON_SEARCH to find the actor ID in the cast array
+            movies_query = movies_query.filter(
+                func.json_search(
+                    Credits.cast_,
+                    'one',
+                    str(actor_id),
+                    None,
+                    '$[*].id'
+                ).isnot(None)
+            )
+        else:
+            # For PostgreSQL and others that support jsonb_path_exists
+            movies_query = movies_query.filter(
                 func.jsonb_path_exists(
                     Credits.cast_,
                     f'$[*] ? (@.id == {actor_id})'
                 )
             )
-        )
         
         movies = []
         actor_details = None
