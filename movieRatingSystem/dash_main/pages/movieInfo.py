@@ -96,25 +96,37 @@ def show_movie_info(nclicks, movieID, db_type):
     try:
         # Create a session with the specified database
         session = db_config.create_session(db_type)
-        start_time = datetime.datetime.now()
+        total_start_time = datetime.datetime.now()
         
         # Get movie details
+        movie_info_start = datetime.datetime.now()
         movie_info = get_movie_by_id(session, movieID)
+        movie_info_time = (datetime.datetime.now() - movie_info_start).total_seconds()
+        
         if not movie_info:
             return html.Div("Movie not found"), None, False, None, "", ""
         
         # Get movie credits
+        credits_start = datetime.datetime.now()
         movie_credits = get_movie_credits(session, movieID)
+        credits_time = (datetime.datetime.now() - credits_start).total_seconds()
         
         # Get similar movies
+        similar_start = datetime.datetime.now()
         similar_movies = get_similar_movies(session, movieID, limit=10)
+        similar_time = (datetime.datetime.now() - similar_start).total_seconds()
         
-        query_time = (datetime.datetime.now() - start_time).total_seconds()
+        total_time = (datetime.datetime.now() - total_start_time).total_seconds()
         
         # Create query info for export
         query_exporter = QueryExporter(output_file=f"{db_type}_movie_info_history.json")
         query_info = {
-            'query_time': f"{query_time:.3f}s",
+            'query_times': {
+                'movie_info': f"{movie_info_time:.3f}s",
+                'credits': f"{credits_time:.3f}s",
+                'similar_movies': f"{similar_time:.3f}s",
+                'total': f"{total_time:.3f}s"
+            },
             'total_results': 1,
             'movie_id': movieID,
             'db_type': db_type,
@@ -166,7 +178,7 @@ def show_movie_info(nclicks, movieID, db_type):
         }
         query_exporter.add_query(
             statement=str(query_info['query_statements']),
-            query_time=query_info['query_time'],
+            query_time=query_info['query_times']['total'],
             result_count=1,
             sql_explanation="Retrieves movie details, credits, and finds similar movies based on genre overlap"
         )
@@ -490,7 +502,7 @@ def show_movie_info(nclicks, movieID, db_type):
         
         # Create performance metrics
         metrics = [
-            f"Query Time: {query_info['query_time']}",
+            f"Total Time: {query_info['query_times']['total']}",
             f"Database: {db_type.upper()}"
         ]
         
@@ -499,6 +511,7 @@ def show_movie_info(nclicks, movieID, db_type):
             dmc.Text("Query Information:", size="sm", fw=700),
             dmc.Space(h=5),
             dmc.Text("Movie Info Query:", size="sm", fw=500),
+            dmc.Text(f"Time: {query_info['query_times']['movie_info']}", size="sm", c="dimmed"),
             dmc.Code(
                 query_info['query_statements']['movie_info'],
                 block=True,
@@ -507,6 +520,7 @@ def show_movie_info(nclicks, movieID, db_type):
             ),
             dmc.Space(h=10),
             dmc.Text("Credits Query:", size="sm", fw=500),
+            dmc.Text(f"Time: {query_info['query_times']['credits']}", size="sm", c="dimmed"),
             dmc.Code(
                 query_info['query_statements']['credits'],
                 block=True,
@@ -515,6 +529,7 @@ def show_movie_info(nclicks, movieID, db_type):
             ),
             dmc.Space(h=10),
             dmc.Text("Similar Movies Query:", size="sm", fw=500),
+            dmc.Text(f"Time: {query_info['query_times']['similar_movies']}", size="sm", c="dimmed"),
             dmc.Code(
                 query_info['query_statements']['similar_movies'],
                 block=True,
@@ -522,15 +537,20 @@ def show_movie_info(nclicks, movieID, db_type):
                 style={'whiteSpace': 'pre-wrap', 'overflowX': 'auto', 'maxHeight': '200px'}
             ),
             dmc.Space(h=10),
-            dmc.Text("Performance:", size="sm", fw=500),
+            dmc.Text("Performance Summary:", size="sm", fw=500),
             dmc.Code(
-                f"Movie ID: {movieID}\nDatabase: {db_type}\nQuery Time: {query_info['query_time']}",
+                f"Movie ID: {movieID}\n"
+                f"Database: {db_type}\n"
+                f"Movie Info Time: {query_info['query_times']['movie_info']}\n"
+                f"Credits Time: {query_info['query_times']['credits']}\n"
+                f"Similar Movies Time: {query_info['query_times']['similar_movies']}\n"
+                f"Total Time: {query_info['query_times']['total']}",
                 block=True,
                 color="green",
                 style={'whiteSpace': 'pre-wrap'}
             )
         ]
-
+        
         session.close()
         
         return movie_html, None, False, query_info, " | ".join(metrics), hover_content
