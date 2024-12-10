@@ -139,7 +139,7 @@ def get_movie_by_id(session, movie_id):
         # Get basic movie info
         builder = MovieQueryBuilder(session)
         result = (
-            builder.base_query()
+            builder.base_info_query()
             .filter_by_movie_id(movie_id)
             .paginate(page=1, items_per_page=1)
         )
@@ -261,7 +261,7 @@ def search_movies(session, conditions=None, page=1, items_per_page=20):
         logger.info(f"Parsed search parameters: {params}")
 
         query_builder = MovieQueryBuilder(session)
-        query = query_builder.base_query()
+        query = query_builder.base_search_query()
         
         # Apply filters based on parsed parameters
         query = (

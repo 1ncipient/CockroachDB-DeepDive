@@ -39,7 +39,7 @@ class MovieQueryBuilder:
         
         return result
 
-    def base_query(self):
+    def base_search_query(self):
         """Initialize the base query with all necessary columns."""
         self.query = (
             select(
@@ -55,46 +55,47 @@ class MovieQueryBuilder:
                 MovieMetadata.poster_path,
                 MovieMetadata.overview,
                 MovieMetadata.tagline,
-                MovieMetadata.production_companies,
-                MovieMetadata.budget,
-                MovieMetadata.revenue,
-                MovieMetadata.spoken_languages,
                 Movies.genres,
-                Links.imdbId,
-                Links.tmdbId,
                 func.avg(Ratings.rating).label('user_rating')
             )
             .join(Movies, MovieMetadata.movieId == Movies.movieId)
-            .join(Links, MovieMetadata.movieId == Links.movieId)
             .outerjoin(Ratings, MovieMetadata.movieId == Ratings.movieId)
+            .group_by(
+                MovieMetadata.movieId,
+                Movies.genres
+            )
         )
+        return self
 
-        # Handle grouping differently for MariaDB
-        if self.dialect in ('mysql', 'mariadb'):
-            self.query = self.query.group_by(
+    def base_info_query(self):
+        """Initialize the base query with all necessary columns."""
+        self.query = (
+            select(
                 MovieMetadata.movieId,
                 MovieMetadata.title,
-                MovieMetadata.adult,
-                MovieMetadata.release_date,
-                MovieMetadata.original_language,
-                MovieMetadata.runtime,
+                MovieMetadata.overview,
+                MovieMetadata.poster_path,
                 MovieMetadata.vote_average,
                 MovieMetadata.vote_count,
-                MovieMetadata.popularity,
-                MovieMetadata.poster_path,
-                MovieMetadata.overview,
-                MovieMetadata.tagline,
+                MovieMetadata.release_date,
+                MovieMetadata.spoken_languages,
+                MovieMetadata.runtime,
+                MovieMetadata.budget,
+                MovieMetadata.revenue,
+                MovieMetadata.production_companies,
                 Movies.genres,
                 Links.imdbId,
                 Links.tmdbId
             )
-        else:
-            self.query = self.query.group_by(
+            .join(Movies, MovieMetadata.movieId == Movies.movieId)
+            .outerjoin(Links, MovieMetadata.movieId == Links.movieId)
+            .group_by(
                 MovieMetadata.movieId,
                 Movies.genres,
                 Links.imdbId,
                 Links.tmdbId
             )
+        )
         return self
 
     def filter_by_movie_id(self, movie_id: int):
