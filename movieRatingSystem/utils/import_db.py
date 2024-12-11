@@ -46,15 +46,16 @@ def uploadTablesData(db_type, file_path, table_name, engine, chunk_size):
             connection = engine.connect()
             transaction = connection.begin()
             with open(file_path, 'r', newline=None) as file:
-                df = pd.read_csv(file)
-                if db_type == 'mariadb' and table_name == 'movies':
-                    # MariaDB does not support ARRAY type, so we need to convert the genres column to a JSON string
-                    df['genres'] = df['genres'].apply(lambda x: json.dumps([x.strip() for x in x[1:-1].split(',') if x.strip()]))
-                    df.to_sql(table_name, con=connection, index=False, if_exists='append', chunksize=chunk_size, method='multi')
-                else:
-                    df.to_sql(table_name, con=connection, index=False, if_exists='append', chunksize=chunk_size, method='multi')
+                for df in pd.read_csv(file, chunksize=chunk_size):
+                    if db_type == 'mariadb' and table_name == 'movies':
+                        # MariaDB does not support ARRAY type, so we need to convert the genres column to a JSON string
+                        df['genres'] = df['genres'].apply(lambda x: json.dumps([x.strip() for x in x[1:-1].split(',') if x.strip()]))
+                        df.to_sql(table_name, con=connection, index=False, if_exists='append', chunksize=chunk_size, method='multi')
+                    else:
+                        df.to_sql(table_name, con=connection, index=False, if_exists='append', chunksize=chunk_size, method='multi')
                 transaction.commit()
                 logger.info(f"Data inserted into [{table_name}] successfully.")
+
             break
         except (SerializationFailure, OperationalError, InternalError) as e:
             logger.error(f"Failed to upload data to table [{table_name}]: {e}")
