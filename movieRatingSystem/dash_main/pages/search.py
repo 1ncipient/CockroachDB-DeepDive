@@ -526,6 +526,9 @@ layout = [
     dcc.Store(id='query-info-cockroach'),
     dcc.Store(id='query-info-postgres'),
     dcc.Store(id='query-info-mariadb'),
+    dcc.Store(id='current-page-cockroach', data=1),
+    dcc.Store(id='current-page-postgres', data=1),
+    dcc.Store(id='current-page-mariadb', data=1),
 ]
 
 def update_movie_results(db_name, session, n_clicks, page, sort_by, title=None, genres=None, languages=None, 
@@ -660,11 +663,12 @@ def update_movie_results(db_name, session, n_clicks, page, sort_by, title=None, 
 
 # Callbacks for each database
 @callback(
-    [Output('movie-grid-cockroach', 'children', allow_duplicate=True),
+    [Output('movie-grid-cockroach', 'children'),
      Output('pagination-cockroach', 'total'),
      Output('query-info-cockroach', 'data'),
-     Output('performance-metrics-cockroach', 'children', allow_duplicate=True),
-     Output('query-info-hover-cockroach', 'children', allow_duplicate=True)],
+     Output('performance-metrics-cockroach', 'children'),
+     Output('query-info-hover-cockroach', 'children'),
+     Output('results-loading-cockroach', 'visible', allow_duplicate=True)],
     [Input('submit-selection', 'n_clicks'),
      Input('pagination-cockroach', 'value'),
      Input('sort-by-select', 'value')],
@@ -677,7 +681,6 @@ def update_movie_results(db_name, session, n_clicks, page, sort_by, title=None, 
      State('type-select', 'value'),
      State('adult-content', 'value')],
      prevent_initial_call='initial_duplicate',
-     running=[(Output('results-loading-cockroach', 'visible'), True, False)]
 )
 @with_db_session
 def update_cockroach_results(session, n_clicks, page, sort_by, title=None, genres=None, languages=None, years=None, 
@@ -704,14 +707,15 @@ def update_cockroach_results(session, n_clicks, page, sort_by, title=None, genre
         )
     ]
     
-    return grid, total_pages, query_info, " | ".join(metrics), hover_content
+    return grid, total_pages, query_info, " | ".join(metrics), hover_content, False
 
 @callback(
-    [Output('movie-grid-postgres', 'children', allow_duplicate=True),
+    [Output('movie-grid-postgres', 'children'),
      Output('pagination-postgres', 'total'),
      Output('query-info-postgres', 'data'),
-     Output('performance-metrics-postgres', 'children', allow_duplicate=True),
-     Output('query-info-hover-postgres', 'children', allow_duplicate=True)],
+     Output('performance-metrics-postgres', 'children'),
+     Output('query-info-hover-postgres', 'children'),
+     Output('results-loading-postgres', 'visible', allow_duplicate=True)],
     [Input('submit-selection', 'n_clicks'),
      Input('pagination-postgres', 'value'),
      Input('sort-by-select', 'value')],
@@ -724,7 +728,6 @@ def update_cockroach_results(session, n_clicks, page, sort_by, title=None, genre
      State('type-select', 'value'),
      State('adult-content', 'value')],
     prevent_initial_call='initial_duplicate',
-    running=[(Output('results-loading-postgres', 'visible'), True, False)]
 )
 @with_db_session
 def update_postgres_results(session, n_clicks, page, sort_by, title=None, genres=None, languages=None, years=None, 
@@ -751,14 +754,15 @@ def update_postgres_results(session, n_clicks, page, sort_by, title=None, genres
         )
     ]
     
-    return grid, total_pages, query_info, " | ".join(metrics), hover_content
+    return grid, total_pages, query_info, " | ".join(metrics), hover_content, False
 
 @callback(
-    [Output('movie-grid-mariadb', 'children', allow_duplicate=True),
+    [Output('movie-grid-mariadb', 'children'),
      Output('pagination-mariadb', 'total'),
      Output('query-info-mariadb', 'data'),
-     Output('performance-metrics-mariadb', 'children', allow_duplicate=True),
-     Output('query-info-hover-mariadb', 'children', allow_duplicate=True),],
+     Output('performance-metrics-mariadb', 'children'),
+     Output('query-info-hover-mariadb', 'children'),
+     Output('results-loading-mariadb', 'visible', allow_duplicate=True)],
     [Input('submit-selection', 'n_clicks'),
      Input('pagination-mariadb', 'value'),
      Input('sort-by-select', 'value')],
@@ -771,7 +775,6 @@ def update_postgres_results(session, n_clicks, page, sort_by, title=None, genres
      State('type-select', 'value'),
      State('adult-content', 'value')],
     prevent_initial_call='initial_duplicate',
-    running=[(Output('results-loading-mariadb', 'visible'), True, False)]
 )
 @with_db_session
 def update_mariadb_results(session, n_clicks, page, sort_by, title=None, genres=None, languages=None, years=None, 
@@ -798,21 +801,41 @@ def update_mariadb_results(session, n_clicks, page, sort_by, title=None, genres=
         )
     ]
     
-    return grid, total_pages, query_info, " | ".join(metrics), hover_content
+    return grid, total_pages, query_info, " | ".join(metrics), hover_content, False
 
 # Add loading state callbacks
 @callback(
-    [Output("search-panel-loading", "visible", allow_duplicate=True)],
+    [Output("search-panel-loading", "visible", allow_duplicate=True),
+     Output('results-loading-cockroach', 'visible', allow_duplicate=True),
+     Output('results-loading-postgres', 'visible', allow_duplicate=True),
+     Output('results-loading-mariadb', 'visible', allow_duplicate=True),
+     Output("current-page-cockroach", "data"),
+     Output("current-page-postgres", "data"),
+     Output("current-page-mariadb", "data"),],
     [Input("submit-selection", "n_clicks"),
      Input("sort-by-select", "value"),
      Input("pagination-cockroach", "value"),
      Input("pagination-postgres", "value"),
      Input("pagination-mariadb", "value")],
+    [State("current-page-cockroach", "data"),
+     State("current-page-postgres", "data"),
+     State("current-page-mariadb", "data"),
+     State('results-loading-cockroach', 'visible'),
+     State('results-loading-postgres', 'visible'),
+     State('results-loading-mariadb', 'visible')],
     prevent_initial_call=True
 )
-def show_search_loading(n_clicks, sort_by, page_cockroach, page_postgres, page_mariadb):
+def show_search_loading(n_clicks, sort_by, page_cockroach, page_postgres, page_mariadb, stored_page_cockroach, 
+                        stored_page_postgres, stored_page_mariadb, is_loading_cockroach, is_loading_postgres, is_loading_mariadb):
     """Show loading overlay when search is triggered."""
-    return True
+
+    # Check which page has changed and only disable that section
+    if page_cockroach != stored_page_cockroach:
+        return True, True, is_loading_postgres, is_loading_mariadb, page_cockroach, page_postgres, page_mariadb
+    if page_postgres != stored_page_postgres:
+        return True, is_loading_cockroach, True, is_loading_mariadb, page_cockroach, page_postgres, page_mariadb
+    if page_mariadb != stored_page_mariadb:
+        return True, is_loading_cockroach, is_loading_postgres, True, page_cockroach, page_postgres, page_mariadb
 
 @callback(
     Output("search-panel-loading", "visible", allow_duplicate=True),
@@ -825,5 +848,5 @@ def hide_search_loading(*results):
     """Hide search panel loading when all results are loaded."""
     if not any(results):
         return False
-    raise PreventUpdate
+    return True
 
