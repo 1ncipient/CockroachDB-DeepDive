@@ -829,6 +829,17 @@ def show_search_loading(n_clicks, sort_by, page_cockroach, page_postgres, page_m
                         stored_page_postgres, stored_page_mariadb, is_loading_cockroach, is_loading_postgres, is_loading_mariadb):
     """Show loading overlay when search is triggered."""
 
+    ctx = callback_context
+    if not ctx.triggered:
+        trigger_id = None
+    else:
+        # Get the ID of the triggering input
+        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    # Show all loading overlay
+    if trigger_id == "submit-selection" or trigger_id == "sort-by-select":
+        return True, True, True, True, page_cockroach, page_postgres, page_mariadb
+
     # Check which page has changed and only disable that section
     if page_cockroach != stored_page_cockroach:
         return True, True, is_loading_postgres, is_loading_mariadb, page_cockroach, page_postgres, page_mariadb
@@ -836,6 +847,9 @@ def show_search_loading(n_clicks, sort_by, page_cockroach, page_postgres, page_m
         return True, is_loading_cockroach, True, is_loading_mariadb, page_cockroach, page_postgres, page_mariadb
     if page_mariadb != stored_page_mariadb:
         return True, is_loading_cockroach, is_loading_postgres, True, page_cockroach, page_postgres, page_mariadb
+
+    # Default behavior if no recognized trigger
+    return False, is_loading_cockroach, is_loading_postgres, is_loading_mariadb, stored_page_cockroach, stored_page_postgres, stored_page_mariadb
 
 @callback(
     Output("search-panel-loading", "visible", allow_duplicate=True),
