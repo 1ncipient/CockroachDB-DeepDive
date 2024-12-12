@@ -110,26 +110,14 @@ def show_actor_info(nClicks, actorID, db_type):
             'total_results': actor_data['total_movies'],
             'actor_id': actorID,
             'db_type': db_type,
-            'query_statement': """
-            SELECT 
-                c.cast,
-                mm.movieId,
-                mm.title,
-                mm.poster_path,
-                mm.release_date,
-                mm.vote_average,
-                m.genres
-            FROM credits c
-            JOIN movie_metadata mm ON c.movieId = mm.movieId
-            JOIN movies m ON mm.movieId = m.movieId
-            WHERE c.cast ??| array[actor_id]
-            """
+            'query_statement': actor_data['movies_query_statement']
         }
+        
         query_exporter.add_query(
             statement=query_info['query_statement'],
             query_time=query_info['query_time'],
             result_count=actor_data['total_movies'],
-            sql_explanation="Joins credits, movie_metadata, and movies tables to get all movies where the actor appears in the cast"
+            sql_explanation="actor info query"
         )
         
         # Create the actor info display
@@ -236,31 +224,37 @@ def show_actor_info(nClicks, actorID, db_type):
         
         # Create performance metrics
         metrics = [
-            f"Query Time: {query_info['query_time']}",
-            f"Database: {db_type.upper()}",
-            f"Movies Found: {actor_data['total_movies']}"
+            f"Total Time: {query_info['query_time']}",
+            f"Database: {db_type.upper()}"
         ]
         
         # Create query info hover content
         hover_content = [
             dmc.Text("Query Information:", size="sm", fw=700),
             dmc.Space(h=5),
-            dmc.Text("SQL Query:", size="sm", fw=500),
+            html.Div([
+                dmc.Text("Actor Movies Query:", size="sm", fw=500),
+                dmc.Code(
+                    query_info['query_statement'],
+                    block=True,
+                    color="blue",
+                    style={'whiteSpace': 'pre-wrap', 'overflowX': 'auto', 'maxHeight': '200px'}
+                ),
+                dmc.Space(h=10)
+            ]),
+            dmc.Text("Performance Summary:", size="sm", fw=500),
             dmc.Code(
-                query_info['query_statement'],
-                block=True,
-                color="blue",
-                style={'whiteSpace': 'pre-wrap', 'overflowX': 'auto', 'maxHeight': '200px'}
-            ),
-            dmc.Space(h=10),
-            dmc.Text("Performance:", size="sm", fw=500),
-            dmc.Code(
-                f"Actor ID: {actorID}\nDatabase: {db_type}\nQuery Time: {query_info['query_time']}\nMovies Found: {actor_data['total_movies']}",
+                f"Actor ID: {actorID}\n"
+                f"Database: {db_type}\n"
+                f"Total Time: {query_info['query_time']}\n"
+                f"Total Movies: {query_info['total_results']}",
                 block=True,
                 color="green",
                 style={'whiteSpace': 'pre-wrap'}
             )
         ]
+        
+        session.close()
         
         return actor_html, False, query_info, " | ".join(metrics), hover_content
         

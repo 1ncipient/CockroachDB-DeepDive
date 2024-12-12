@@ -2,7 +2,7 @@ from functools import wraps
 from movieRatingSystem.config.database import db_config
 from movieRatingSystem.utils.query_builder import MovieQueryBuilder
 from movieRatingSystem.models.movie_models import MovieMetadata, Movies, Credits, Links, Ratings, GenomeScores, GenomeTags
-from sqlalchemy import func, and_, or_, Integer, Float, String, text, select
+from sqlalchemy import func, and_, or_, Integer, Float, String, text, select, exists, cast
 from sqlalchemy.dialects.postgresql import JSONB
 from movieRatingSystem.logging_config import get_logger
 from movieRatingSystem.utils.language_utils import create_language_options
@@ -557,9 +557,8 @@ def get_actor_info(session, actor_id):
         
         # Apply dialect-specific JSON filtering
         if dialect_name == 'cockroachdb':
-            # For CockroachDB, use a simpler JSON containment check
             movies_query = movies_query.filter(
-                Credits.cast_.op('->>')('id').cast(String) == str(actor_id)
+                Credits.cast_.op('@>')(cast([{"id": int(actor_id)}], JSONB))
             )
         elif dialect_name == 'mariadb' or dialect_name == 'mysql':
             # For MariaDB/MySQL, use JSON_SEARCH to find the actor ID in the cast array
@@ -583,6 +582,10 @@ def get_actor_info(session, actor_id):
         
         movies = []
         actor_details = None
+
+        # Just use str() on the statement without literal_binds
+        movies_query_statement = str(movies_query.statement)
+        logger.info(f"Actor movies query: {movies_query_statement}")
         
         for movie in movies_query.all():
             # Extract actor details from cast if not already found
@@ -619,7 +622,8 @@ def get_actor_info(session, actor_id):
         return {
             'actor': actor_details,
             'movies': movies,
-            'total_movies': len(movies)
+            'total_movies': len(movies),
+            'movies_query_statement': movies_query_statement
         }
         
     except Exception as e:
