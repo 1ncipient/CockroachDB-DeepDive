@@ -3,11 +3,13 @@ from movieRatingSystem.config.database import db_config
 from movieRatingSystem.utils.query_builder import MovieQueryBuilder
 from movieRatingSystem.models.movie_models import MovieMetadata, Movies, Credits, Links, Ratings, GenomeScores, GenomeTags
 from sqlalchemy import func, and_, or_, Integer, Float, String, text, select
+from sqlalchemy.dialects.postgresql import JSONB
 from movieRatingSystem.logging_config import get_logger
 from movieRatingSystem.utils.language_utils import create_language_options
 from datetime import date
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
-
+import pandas as pd
+import random
 logger = get_logger()
 
 def handle_db_error(db_name: str, error: Exception) -> dict:
@@ -148,6 +150,7 @@ def get_movie_by_id(session, movie_id):
             return None
             
         movie_info = result['results'][0]
+        movie_info['movie_query_statement'] = result['query_statement']
         
         # Get genome tags with relevance scores
         # First get the movie's genome scores
@@ -158,38 +161,30 @@ def get_movie_by_id(session, movie_id):
         )
         
         if genome_scores and genome_scores.relevances:
-            # Convert the relevances to a dictionary
-            relevances = genome_scores.relevances
+            # Convert the relevances to a pandas Series and get top 20
+            relevances_series = pd.Series(genome_scores.relevances)
+            top_20_tags = relevances_series.nlargest(20)
             
-            # Get tags for the relevance scores we have
-            genome_query = (
-                session.query(
-                    GenomeTags.tag,
-                    func.cast(
-                        func.jsonb_extract_path_text(
-                            func.cast(func.json_build_object(*[
-                                item for pair in [(str(k), str(v)) for k, v in relevances.items()]
-                                for item in pair
-                            ]), JSONB),
-                            func.cast(GenomeTags.tagId, String)
-                        ),
-                        Float
-                    ).label('relevance')
-                )
-                .filter(GenomeTags.tagId.in_([int(k) for k in relevances.keys()]))
-                .order_by(text('relevance DESC'))
-                .limit(20)
+            # Get the tag names for the top 20 tag IDs
+            tag_names_query = (
+                session.query(GenomeTags.tagId, GenomeTags.tag)
+                .filter(GenomeTags.tagId.in_([int(k) for k in top_20_tags.index]))
             )
+            movie_info['top_20_tags_statement'] = str(tag_names_query.statement.compile(compile_kwargs={"literal_binds": True}))
+            tag_names = tag_names_query.all()
             
-            # Add tags to movie info
-            tags_with_scores = []
-            genome_query_results = genome_query.all()
-            for tag, relevance in genome_query_results:
-                if relevance is not None:
-                    tags_with_scores.append({
-                        'tag': tag,
-                        'relevance': float(relevance)
-                    })
+            # Create a dict for quick tag ID to name lookup
+            tag_dict = {str(tag_id): tag for tag_id, tag in tag_names}
+            
+            # Create the final tags list
+            tags_with_scores = [
+                {
+                    'tag': tag_dict[tag_id],
+                    'relevance': float(score)
+                }
+                for tag_id, score in top_20_tags.items()
+                if tag_id in tag_dict
+            ]
             
             movie_info['tags'] = tags_with_scores
         else:
@@ -207,13 +202,15 @@ def get_movie_credits(session, movie_id):
             session.query(Credits)
             .filter(Credits.movieId == movie_id)
         )
+        credits_query_statement = str(query.statement.compile(compile_kwargs={"literal_binds": True}))
         result = query.first()
         if result:
             # Convert SQLAlchemy model to dictionary
             return {
                 'movieId': result.movieId,
                 'cast_': result.cast_,
-                'crew': result.crew
+                'crew': result.crew,
+                'credits_query_statement': credits_query_statement
             }
         return None
     except Exception as e:
@@ -343,11 +340,12 @@ def parse_search_conditions(conditions):
     return params
     
 def get_similar_movies(session, movie_id, limit=6):
-    """Get similar movies based on genres and genome scores."""
+    """Get similar movies based on genome tags, production companies, and genres."""
     try:
-        # First get the current movie's genres and genome scores
+        # Get base movie info
         base_movie = (
-            session.query(Movies.genres)
+            session.query(Movies.genres, MovieMetadata.production_companies)
+            .join(MovieMetadata, Movies.movieId == MovieMetadata.movieId)
             .filter(Movies.movieId == movie_id)
             .first()
         )
@@ -355,14 +353,123 @@ def get_similar_movies(session, movie_id, limit=6):
         if not base_movie:
             return []
 
+        # Similar Movies Approach 1: Similar movies by genome tags
         base_genome = (
             session.query(GenomeScores.relevances)
             .filter(GenomeScores.movieId == movie_id)
             .first()
         )
-
-        # Query to find similar movies
-        query = (
+        
+        results = []
+        high_score_movies_query_statement = "N/A"
+        similar_genres_query_statement = "N/A"
+        movies_with_companies_query_statement = "N/A"   
+        
+        if base_genome and base_genome.relevances:
+            # Get top 5 tags
+            top_tags = sorted(
+                [(k, float(v)) for k, v in base_genome.relevances.items()],
+                key=lambda x: x[1],
+                reverse=True
+            )[:5]
+            
+            # Get movies with high scores for these tags
+            high_score_movies_query = (
+                session.query(
+                    MovieMetadata.movieId,
+                    MovieMetadata.title,
+                    MovieMetadata.poster_path,
+                    MovieMetadata.vote_average,
+                    MovieMetadata.popularity,
+                    Movies.genres,
+                    func.avg(Ratings.rating).label('user_rating'),
+                    GenomeScores.relevances
+                )
+                .join(Movies, MovieMetadata.movieId == Movies.movieId)
+                .outerjoin(Ratings, MovieMetadata.movieId == Ratings.movieId)
+                .join(GenomeScores, MovieMetadata.movieId == GenomeScores.movieId)
+                .filter(MovieMetadata.movieId != movie_id)
+                .group_by(
+                    MovieMetadata.movieId,
+                    MovieMetadata.title,
+                    MovieMetadata.poster_path,
+                    MovieMetadata.vote_average,
+                    MovieMetadata.popularity,
+                    Movies.genres,
+                    GenomeScores.relevances
+                )
+                .order_by(MovieMetadata.popularity.desc())
+            )
+            high_score_movies_query_statement = str(high_score_movies_query.statement.compile(compile_kwargs={"literal_binds": True}))
+            high_score_movies_results = high_score_movies_query.all()
+            
+            # Filter results in Python to find movies with high scores for the top tags
+            filtered_results = []
+            for movie in high_score_movies_results:
+                if not movie.relevances:
+                    continue
+                    
+                # Check if movie has high scores for any of the top tags
+                for tag_id, base_relevance in top_tags:
+                    if str(tag_id) in movie.relevances:
+                        movie_relevance = float(movie.relevances[str(tag_id)])
+                        if movie_relevance > base_relevance * 0.7:
+                            filtered_results.append(movie)
+                            break
+            
+            results.extend(filtered_results[:3*limit])
+        
+        # Similar Movies Approach 2: Same production company and genres
+        if base_movie.production_companies:
+            # Extract company IDs from base movie
+            base_company_ids = {company['id'] for company in base_movie.production_companies}
+            
+            # Get movies from the same production companies
+            movies_with_companies = (
+                session.query(
+                    MovieMetadata.movieId,
+                    MovieMetadata.title,
+                    MovieMetadata.poster_path,
+                    MovieMetadata.vote_average,
+                    MovieMetadata.popularity,
+                    Movies.genres,
+                    MovieMetadata.production_companies,
+                    func.avg(Ratings.rating).label('user_rating')
+                )
+                .join(Movies, MovieMetadata.movieId == Movies.movieId)
+                .outerjoin(Ratings, MovieMetadata.movieId == Ratings.movieId)
+                .filter(MovieMetadata.movieId != movie_id)
+                .filter(MovieMetadata.production_companies.isnot(None))
+                .group_by(
+                    MovieMetadata.movieId,
+                    MovieMetadata.title,
+                    MovieMetadata.poster_path,
+                    MovieMetadata.vote_average,
+                    MovieMetadata.popularity,
+                    Movies.genres,
+                    MovieMetadata.production_companies
+                )
+                .order_by(MovieMetadata.popularity.desc())
+            )
+            movies_with_companies_query_statement = str(movies_with_companies.statement.compile(compile_kwargs={"literal_binds": True}))
+            movies_with_companies_results = movies_with_companies.all()
+            
+            # Filter movies that share at least one production company and genre
+            filtered_results = []
+            for movie in movies_with_companies_results:
+                if not movie.production_companies:
+                    continue
+                    
+                movie_company_ids = {company['id'] for company in movie.production_companies}
+                if base_company_ids & movie_company_ids and any(genre in base_movie.genres for genre in movie.genres):
+                    filtered_results.append(movie)
+                    if len(filtered_results) >= limit:
+                        break
+            
+            results.extend(filtered_results[:2*limit])
+        
+        # Similar Movies Approach 3: Similar genres only
+        similar_genres_query = (
             session.query(
                 MovieMetadata.movieId,
                 MovieMetadata.title,
@@ -374,7 +481,7 @@ def get_similar_movies(session, movie_id, limit=6):
             )
             .join(Movies, MovieMetadata.movieId == Movies.movieId)
             .outerjoin(Ratings, MovieMetadata.movieId == Ratings.movieId)
-            .filter(MovieMetadata.movieId != movie_id)  # Exclude the current movie
+            .filter(MovieMetadata.movieId != movie_id)
             .group_by(
                 MovieMetadata.movieId,
                 MovieMetadata.title,
@@ -383,64 +490,46 @@ def get_similar_movies(session, movie_id, limit=6):
                 MovieMetadata.popularity,
                 Movies.genres
             )
+            .order_by(MovieMetadata.popularity.desc())
+            .limit(limit * 2)  # Get more results to filter
         )
+        similar_genres_query_statement = str(similar_genres_query.statement.compile(compile_kwargs={"literal_binds": True}))
+        similar_genres_results = similar_genres_query.all()
 
-        # Add genome score similarity if available
-        if base_genome and base_genome.relevances:
-            # Join with genome scores
-            query = (
-                query.join(GenomeScores, MovieMetadata.movieId == GenomeScores.movieId)
-                .filter(func.jsonb_typeof(GenomeScores.relevances) == 'object')
-            )
-            
-            # Find movies with similar high-relevance tags
-            top_tags = sorted(
-                [(k, float(v)) for k, v in base_genome.relevances.items()],
-                key=lambda x: x[1],
-                reverse=True
-            )[:5]
-            
-            tag_conditions = []
-            for tag_id, relevance in top_tags:
-                tag_conditions.append(
-                    func.cast(
-                        func.jsonb_extract_path_text(GenomeScores.relevances, str(tag_id)),
-                        Float
-                    ) > relevance * 0.7
-                )
-            query = query.filter(or_(*tag_conditions))
-
-        # Get all potential similar movies
-        results = query.all()
-        
-        # Filter and sort results by genre similarity and popularity in Python
-        # since MariaDB doesn't support array operations well
-        filtered_results = [
-            r for r in results 
-            if any(genre in base_movie.genres for genre in r.genres)
-        ]
-        
-        # Sort results by genre similarity and popularity
-        sorted_results = sorted(
+        # Filter by genre similarity and sort
+        filtered_results = [r for r in similar_genres_results if any(genre in base_movie.genres for genre in r.genres)]
+        results.extend(sorted(
             filtered_results,
-            key=lambda x: (
-                len(set(x.genres) & set(base_movie.genres)),  # Number of matching genres
-                x.popularity or 0  # Popularity (default to 0 if None)
-            ),
+            key=lambda x: x.popularity or 0,
             reverse=True
-        )[:limit]
+        )[:limit])
+
+        # Remove duplicates by id
+        unique_results = []
+        for r in results:
+            if r.movieId not in [ur.movieId for ur in unique_results]:
+                unique_results.append(r)
         
-        return [
-            {
-                'movieId': r.movieId,
-                'title': r.title,
-                'poster_path': r.poster_path,
-                'vote_average': r.vote_average,
-                'genres': r.genres,
-                'user_rating': float(r.user_rating) if r.user_rating else None
-            }
-            for r in sorted_results
-        ]
+        if len(unique_results) > limit:
+            unique_results = random.sample(unique_results, limit)
+        
+        # Format results
+        return {
+            'movies': [
+                {
+                    'movieId': r.movieId,
+                    'title': r.title,
+                    'poster_path': r.poster_path,
+                    'vote_average': r.vote_average,
+                    'genres': r.genres,
+                'user_rating': float(r.user_rating) if r.user_rating else None,
+                }
+                for r in unique_results
+            ],
+            'high_score_movies_query_statement': high_score_movies_query_statement,
+            'similar_genres_query_statement': similar_genres_query_statement,
+            'movies_with_companies_query_statement': movies_with_companies_query_statement
+        }
     except Exception as e:
         logger.error(f"Error in get_similar_movies: {str(e)}", exc_info=True)
         raise
