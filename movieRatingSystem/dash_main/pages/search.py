@@ -17,11 +17,12 @@ from movieRatingSystem.styles.common import COLORS, STYLES
 from movieRatingSystem.logging_config import get_logger
 from movieRatingSystem.utils.export_query_data import QueryExporter
 from datetime import datetime, date
-from time import perf_counter
+from time import perf_counter, sleep
 from dash.exceptions import PreventUpdate
 from typing import Union
 
 ITEMS_PER_PAGE = 20
+LOADING_OVERLAY_MIN_TIME = 0.3
 logger = get_logger()
 
 load_dotenv()
@@ -706,6 +707,10 @@ def update_cockroach_results(session, n_clicks, page, sort_by, title=None, genre
             style={'whiteSpace': 'pre-wrap', 'overflowX': 'auto', 'maxHeight': '400px'}
         )
     ]
+
+    # prevent race condition of loading overlay
+    if float(query_info['query_time'].rstrip('s')) < LOADING_OVERLAY_MIN_TIME:
+        sleep(LOADING_OVERLAY_MIN_TIME - float(query_info['query_time'].rstrip('s')))
     
     return grid, total_pages, query_info, " | ".join(metrics), hover_content, False
 
@@ -753,6 +758,10 @@ def update_postgres_results(session, n_clicks, page, sort_by, title=None, genres
             style={'whiteSpace': 'pre-wrap', 'overflowX': 'auto', 'maxHeight': '400px'}
         )
     ]
+
+    # prevent race condition of loading overlay
+    if float(query_info['query_time'].rstrip('s')) < LOADING_OVERLAY_MIN_TIME:
+        sleep(LOADING_OVERLAY_MIN_TIME - float(query_info['query_time'].rstrip('s')))
     
     return grid, total_pages, query_info, " | ".join(metrics), hover_content, False
 
@@ -800,6 +809,10 @@ def update_mariadb_results(session, n_clicks, page, sort_by, title=None, genres=
             style={'whiteSpace': 'pre-wrap', 'overflowX': 'auto', 'maxHeight': '400px'}
         )
     ]
+    
+    # prevent race condition of loading overlay
+    if float(query_info['query_time'].rstrip('s')) < LOADING_OVERLAY_MIN_TIME:
+        sleep(LOADING_OVERLAY_MIN_TIME - float(query_info['query_time'].rstrip('s')))
     
     return grid, total_pages, query_info, " | ".join(metrics), hover_content, False
 
