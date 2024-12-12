@@ -113,7 +113,7 @@ def show_movie_info(nclicks, movieID, db_type):
         
         # Get similar movies
         similar_start = datetime.datetime.now()
-        similar_movies = get_similar_movies(session, movieID, limit=10)
+        similar_movies = get_similar_movies(session, movieID, limit=18)
         similar_time = (datetime.datetime.now() - similar_start).total_seconds()
         
         total_time = (datetime.datetime.now() - total_start_time).total_seconds()
@@ -131,49 +131,11 @@ def show_movie_info(nclicks, movieID, db_type):
             'movie_id': movieID,
             'db_type': db_type,
             'query_statements': {
-                'movie_info': """
-                SELECT 
-                    mm.*,
-                    m.genres,
-                    m.rating,
-                    COALESCE(AVG(r.rating), 0) as avg_rating,
-                    COUNT(r.rating) as rating_count
-                FROM movie_metadata mm
-                JOIN movies m ON mm.movieId = m.movieId
-                LEFT JOIN ratings r ON mm.movieId = r.movieId
-                WHERE mm.movieId = :movie_id
-                GROUP BY mm.movieId, m.genres, m.rating
-                """,
-                'credits': """
-                SELECT cast, crew
-                FROM credits
-                WHERE movieId = :movie_id
-                """,
-                'similar_movies': """
-                WITH movie_genres AS (
-                    SELECT genres FROM movies WHERE movieId = :movie_id
-                ),
-                similar_by_genre AS (
-                    SELECT 
-                        mm.movieId,
-                        mm.title,
-                        mm.poster_path,
-                        mm.vote_average,
-                        m.genres,
-                        AVG(r.rating) as user_rating,
-                        array_length(array_intersect(m.genres, (SELECT genres FROM movie_genres)), 1) as genre_overlap
-                    FROM movie_metadata mm
-                    JOIN movies m ON mm.movieId = m.movieId
-                    LEFT JOIN ratings r ON mm.movieId = r.movieId
-                    WHERE mm.movieId != :movie_id
-                    GROUP BY mm.movieId, mm.title, mm.poster_path, mm.vote_average, m.genres
-                    HAVING array_length(array_intersect(m.genres, (SELECT genres FROM movie_genres)), 1) > 0
-                )
-                SELECT *
-                FROM similar_by_genre
-                ORDER BY genre_overlap DESC, vote_average DESC
-                LIMIT 10
-                """
+                'movie_info': movie_info['movie_query_statement'],
+                'credits': movie_credits['credits_query_statement'],
+                'high_score_movies': similar_movies['high_score_movies_query_statement'],
+                'similar_genres': similar_movies['similar_genres_query_statement'],
+                'movies_with_companies': similar_movies['movies_with_companies_query_statement']
             }
         }
         query_exporter.add_query(
@@ -361,10 +323,6 @@ def show_movie_info(nclicks, movieID, db_type):
                                                                     size="sm"
                                                                 ),
                                                                 dmc.Space(h=5),
-                                                                # dmc.Text(
-                                                                #     f"Status: {movie_info.get('status', 'N/A')}",
-                                                                #     size="sm"
-                                                                # ),
                                                             ]
                                                         ),
                                                     ]
@@ -387,7 +345,7 @@ def show_movie_info(nclicks, movieID, db_type):
                                                             tag['tag'],
                                                             size="md",
                                                             variant="filled",
-                                                            color="blue",
+                                                            color="#e64980",
                                                             style={
                                                                 'opacity': tag['relevance'],
                                                                 'cursor': 'help'
@@ -491,7 +449,7 @@ def show_movie_info(nclicks, movieID, db_type):
                                             )
                                         ]
                                     )
-                                    for movie in similar_movies
+                                    for movie in similar_movies['movies']
                                 ]
                             )
                         ),
@@ -528,10 +486,28 @@ def show_movie_info(nclicks, movieID, db_type):
                 style={'whiteSpace': 'pre-wrap', 'overflowX': 'auto', 'maxHeight': '200px'}
             ),
             dmc.Space(h=10),
-            dmc.Text("Similar Movies Query:", size="sm", fw=500),
+            dmc.Text("Similar Movies Query - High Score:", size="sm", fw=500),
             dmc.Text(f"Time: {query_info['query_times']['similar_movies']}", size="sm", c="dimmed"),
             dmc.Code(
-                query_info['query_statements']['similar_movies'],
+                query_info['query_statements']['high_score_movies'],
+                block=True,
+                color="blue",
+                style={'whiteSpace': 'pre-wrap', 'overflowX': 'auto', 'maxHeight': '200px'}
+            ),
+            dmc.Space(h=10),
+            dmc.Text("Similar Movies Query - Movies with Companies:", size="sm", fw=500),
+            dmc.Text(f"Time: {query_info['query_times']['similar_movies']}", size="sm", c="dimmed"),
+            dmc.Code(
+                query_info['query_statements']['movies_with_companies'],
+                block=True,
+                color="blue",
+                style={'whiteSpace': 'pre-wrap', 'overflowX': 'auto', 'maxHeight': '200px'}
+            ),
+            dmc.Space(h=10),
+            dmc.Text("Similar Movies Query - Similar Genres:", size="sm", fw=500),
+            dmc.Text(f"Time: {query_info['query_times']['similar_movies']}", size="sm", c="dimmed"),
+            dmc.Code(
+                query_info['query_statements']['similar_genres'],
                 block=True,
                 color="blue",
                 style={'whiteSpace': 'pre-wrap', 'overflowX': 'auto', 'maxHeight': '200px'}
