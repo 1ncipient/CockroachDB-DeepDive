@@ -72,3 +72,6 @@ The application will be available at `http://localhost:5000`
 - Colored logging
 - Server-side pagination
 - Advanced search filters
+
+## Updates
+As of now, the database keys are expired, and no longer valid. However, if you create your own CockroachDB, Postgres, MariaDB database keys and simply replace them in the .env template, the project will be able to run on your local machine. Cheers!
